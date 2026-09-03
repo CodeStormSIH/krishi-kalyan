@@ -3,3 +3,13 @@ __pycache__/
 *.db
 *.sqlite3
 venv/
+# Environment files
+.env
+*.env
+backend/.env
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+venv/
+.venv/

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Docs/Architecture_diagram/Home.png" width="500">
+  <img src="Docs/Architecture_diagram/Home.png" width="300">
 </p>
 
 ## 1. 🌾 Project Overview

@@ -115,3 +115,18 @@ portal HTML file alone is not supported.
 
 Backend, AI/ML, database, and project diagrams outside `frontend` are unchanged
 by this portal-focused reorganization.
+
+## Shared sidebar and hamburger menu
+
+All three portals use `Shared_with_all_portals/src/components/Sidebar.jsx` and
+`src/styles/sidebar.css`. Change the shared sidebar color/font variables there
+to update every portal together. Role-specific menu items remain in `Layout.jsx`.
+
+The hamburger button is visible on desktop and mobile. Desktop users can collapse
+the sidebar to give content the full width. At 780px and below, navigation opens
+as a drawer with a backdrop, close button, Escape dismissal, keyboard focus loop,
+and background scroll lock. Selecting a link closes the mobile drawer. Desktop
+collapse and mobile drawer state are independent; resizing clears the drawer.
+
+`src/hooks/useSidebar.js` owns this behavior. `npm test` includes sidebar markup,
+navigation-import, hidden-state, and mobile-dialog regression checks.

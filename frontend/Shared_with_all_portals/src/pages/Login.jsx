@@ -73,7 +73,7 @@ export default function Login({ initialRole = 'farmer' }) {
   return (
     <div className="login-page">
       <div className="login-story">
-        <img className="login-brand-logo" src="/favicon.png" alt="Krishi Kalyan logo"/>
+        <img className="login-brand-logo" src="/logo.png" alt="Krishi Kalyan logo" width="250"/>
           <h1>Krishi Kalyan</h1>
         <span>ONE PLATFORM. EVERY HARVEST.</span>
         <h2>A secure step<br />before your portal.</h2>

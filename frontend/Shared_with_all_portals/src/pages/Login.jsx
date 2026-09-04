@@ -73,8 +73,8 @@ export default function Login({ initialRole = 'farmer' }) {
   return (
     <div className="login-page">
       <div className="login-story">
-        <Wheat size={55} aria-hidden="true" />
-        <h1>Krishi_Kalyan_0.1</h1>
+        <img className="login-brand-logo" src="/favicon.png" alt="Krishi Kalyan logo"/>
+          <h1>Krishi Kalyan</h1>
         <span>ONE PLATFORM. EVERY HARVEST.</span>
         <h2>A secure step<br />before your portal.</h2>
         <p>Choose the correct role, confirm your contact details, and verify the simulated OTP to continue.</p>

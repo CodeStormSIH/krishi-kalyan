@@ -16,3 +16,5 @@ uvicorn==0.52.4
 pydantic-settings
 python-dotenv
 psycopg2-binary
+qrcode
+pillow

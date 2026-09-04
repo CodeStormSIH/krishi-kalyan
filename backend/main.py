@@ -1,19 +1,19 @@
-import os
-import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
-from routers import farmer, gate, admin
+import models
+from database import engine
+from routers import farmer, gate
 
-# Supabase PostgreSQL Database tables auto-create honge
-Base.metadata.create_all(bind=engine)
+# Supabase tables check/create
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="KisanSetu Backend API",
-    description="Anti-Fraud & Dynamic Mandi Logistics Engine (Supabase PostgreSQL Backed)"
+    description="Smart Mandi Congestion & Gate Management Backend",
+    version="1.0.0"
 )
 
-# CORS setup
+# Frontend integration ke liye CORS open
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,15 +22,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers registration
+@app.get("/")
+def health_check():
+    return {"status": "ONLINE", "message": "KisanSetu API is up and running"}
+
+# Routers mounting
 app.include_router(farmer.router)
 app.include_router(gate.router)
-app.include_router(admin.router)
-
-@app.get("/", tags=["System"])
-def health_check():
-    return {"status": "ONLINE", "service": "KisanSetu Backend"}
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)

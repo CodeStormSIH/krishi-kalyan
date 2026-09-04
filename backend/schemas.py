@@ -3,12 +3,17 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-# --- Farmer Module Schemas ---
+# ==========================================
+# 1. FARMER MODULE SCHEMAS
+# ==========================================
+
 class BookingCreateRequest(BaseModel):
     phone_number: str
+    crop_name: str
     vehicle_number: str
     vehicle_type: str
     quantity_quintal: float
+    slot_time: datetime
     transit_permit: Optional[str] = None
 
 class BookingResponse(BaseModel):
@@ -16,12 +21,33 @@ class BookingResponse(BaseModel):
     token_id: str
     channel: str
     message: str
+    slot_time: Optional[datetime] = None
+    qr_image: Optional[str] = None
+
+class GatePassDetailsResponse(BaseModel):
+    token_id: str
+    phone_number: str
+    crop_name: Optional[str] = "Wheat"
+    vehicle_number: str
+    vehicle_type: str
+    quantity_quintal: float
+    channel: str
+    status: str
+    slot_time: Optional[datetime] = None
+    qr_image: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class BookingRescheduleRequest(BaseModel):
-    token_id: str
     new_slot_time: datetime
 
-# --- Gate Module Schemas ---
+
+# ==========================================
+# 2. GATE OPERATOR SCHEMAS
+# ==========================================
+
 class GateVerifyRequest(BaseModel):
     token_id: str
 
@@ -30,3 +56,11 @@ class GateVerifyResponse(BaseModel):
     channel: str
     message: str
     assigned_bay: str
+
+class VehicleLogRequest(BaseModel):
+    token_id: str
+    status: str  # GATE_IN / GATE_OUT / TRANSIT_VERIFIED
+    manual_entry_gate: Optional[str] = None
+    manual_exit_gate: Optional[str] = None
+    verified_by: Optional[str] = None
+    audit_remark: Optional[str] = None

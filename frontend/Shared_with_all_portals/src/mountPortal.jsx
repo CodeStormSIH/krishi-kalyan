@@ -5,10 +5,11 @@ import './styles/common.css';
 import App from './App';
 
 export function mountPortal(initialRole = 'farmer') {
+  const roleFromPath = { farmer: 'farmer', admin: 'admin', operator: 'operator' }[window.location.pathname.split('/')[1]];
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
       <BrowserRouter>
-        <App initialRole={initialRole} />
+        <App initialRole={roleFromPath || initialRole} />
       </BrowserRouter>
     </React.StrictMode>,
   );

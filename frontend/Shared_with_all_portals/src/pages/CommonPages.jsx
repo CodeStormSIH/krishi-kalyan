@@ -1,25 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { Wheat, ShieldCheck, UsersRound, Building2, UserRound } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, UserRound } from 'lucide-react';
 import { Card, SectionTitle } from '../components/UI';
 import { Badge, Button, Field } from '../components/Shared';
 import { useStore } from '../services/store';
 export { default as Support } from './Support';
 export { default as Notifications } from './Notifications';
 export { default as SettingsPage } from './Settings';
-export function Login({ initialRole = 'farmer' }) {
-  const {
-    login,
-    session
-  } = useStore();
-  const [role, setRole] = useState(initialRole);
-  const nav = useNavigate();
-  if (session) return <Navigate to={`/${session.role}/dashboard`} replace />;
-  return <div className="login-page"><div className="login-story"><Wheat size={55} /><h1>Krishi_Kalyan_0.1</h1><span>ONE PLATFORM. EVERY HARVEST.</span><h2>A simpler journey<br />from farm to payment.</h2><p>Book your procurement slot, track the queue and stay informed at every step.</p><div className="login-features"><span>✓ Easy token booking</span><span>✓ Transparent procurement</span><span>✓ Payment tracking</span></div><div className="login-crops">🌾 🌾 🌾</div></div><Card><h2>Welcome back</h2><p className="muted">Select your portal to access the frontend demonstration.</p><div className="role-options">{[['farmer', 'Farmer Portal', 'Book tokens and track your harvest', UsersRound], ['operator', 'Procurement Center', 'Manage your center and queue', Building2], ['admin', 'Admin Portal', 'Oversee procurement operations', ShieldCheck]].map(([value, label, description, Icon]) => <button className={role === value ? 'selected' : ''} key={value} onClick={() => setRole(value)}><Icon /><span><b>{label}</b><small>{description}</small></span><span className="role-radio">{role === value ? '●' : '○'}</span></button>)}</div><Button onClick={() => {
-        login(role);
-        nav(`/${role}/dashboard`);
-      }}>Enter {role === 'farmer' ? 'Farmer' : role === 'admin' ? 'Admin' : 'Center'} Portal →</Button><p className="demo-note">Demo access · All data is simulated and stored in this browser. No real credentials or transactions are used.</p></Card></div>;
-}
+export { default as Login } from './Login';
 export function Logout() {
   const {
     logout,
@@ -29,7 +17,8 @@ export function Logout() {
   return <div className="logout-page"><Card><div className="logout-art"><ShieldCheck size={105} /></div><h2>Are you sure you want to logout?</h2><p>You will be logged out of the Krishi_Kalyan_0.1 {session.role} portal.</p><div className="button-row"><Button onClick={() => {
           logout();
           nav('/login', {
-            replace: true
+            replace: true,
+            state: { role: session.role }
           });
         }}>Yes, Logout</Button><Button secondary onClick={() => nav(-1)}>Cancel</Button></div></Card></div>;
 }

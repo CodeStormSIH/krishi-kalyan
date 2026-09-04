@@ -67,10 +67,8 @@ export function StoreProvider({
     ...r,
     ...values
   } : r));
-  const login = role => {
-    const s = {
-      role
-    };
+  const login = account => {
+    const s = typeof account === 'string' ? { role: account } : account;
     sessionStorage.setItem('krishi-session', JSON.stringify(s));
     setSession(s);
   };

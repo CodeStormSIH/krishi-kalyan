@@ -130,3 +130,15 @@ collapse and mobile drawer state are independent; resizing clears the drawer.
 
 `src/hooks/useSidebar.js` owns this behavior. `npm test` includes sidebar markup,
 navigation-import, hidden-state, and mobile-dialog regression checks.
+
+## Frontend login flow
+
+Every portal entry now redirects unauthenticated visitors to the shared login page.
+The user selects Farmer, Procurement Center, or Admin, enters a valid email and
+10-digit Indian mobile number, requests the simulated OTP, and verifies it before
+a per-tab session is created. The frontend demonstration OTP is `123456`.
+
+No message or personal data leaves the browser. Email and phone are kept only in
+the current tab's `sessionStorage` until logout or tab closure. This is a UI demo,
+not production identity verification; connect it to an authenticated backend and
+OTP provider before using it with real accounts.

@@ -1,0 +1,2 @@
+.stage-layout{grid-template-columns:2fr 1fr}.stage-history>div{display:flex;gap:12px;padding:16px 0;border-bottom:1px solid #eef1f4}.stage-history b{font-size:12px}.stage-history small{display:block;font-size:11px;color:#637087;margin-top:5px}
+@media(max-width:780px){.stage-layout{grid-template-columns:1fr}.stage-layout .card{min-width:0}}

@@ -1,0 +1,12 @@
+{
+  "name": "krishi-kalyan-operator-portal",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm --prefix .. run dev",
+    "build": "npm --prefix .. run build",
+    "preview": "npm --prefix .. run preview"
+  }
+}
+

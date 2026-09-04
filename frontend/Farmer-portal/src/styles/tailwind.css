@@ -1,0 +1,10 @@
+/* Prefixed utilities avoid collisions with the existing .grid/.card styles.
+   Preflight is intentionally omitted to preserve the current visual design. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme) prefix(tw);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(tw) source(none);
+@source "../";
+@source "../../../Shared_with_all_portals/src";
+
+/* Tailwind v4 utilities in JSX use names such as tw:flex and tw:gap-4. */
+

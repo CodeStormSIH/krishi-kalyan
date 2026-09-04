@@ -1,0 +1,3 @@
+.admin-dashboard-grid{display:grid;grid-template-columns:1.65fr 1fr .85fr;gap:18px;grid-template-areas:'overview tokens alerts' 'stages payment centers' 'activity activity quick'}
+@media(max-width:1350px){.admin-dashboard-grid{grid-template-columns:1.3fr 1fr;grid-template-areas:'overview tokens' 'stages payment' 'activity alerts' 'centers quick'}}
+@media(max-width:780px){.admin-dashboard-grid{grid-template-columns:1fr;grid-template-areas:'overview' 'tokens' 'stages' 'payment' 'alerts' 'centers' 'activity' 'quick'}}

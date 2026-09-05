@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/backend-health",
+      "destination": "https://krishi-kalyan-backend.onrender.com/health"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://krishi-kalyan-backend.onrender.com/api/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

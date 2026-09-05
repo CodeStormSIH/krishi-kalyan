@@ -105,3 +105,31 @@ class GateActionResponse(BaseModel):
     token_id: str
     message: str
     total_vehicle_time: Optional[str] = None
+
+# ==========================================
+# 3. ADMIN & ANALYTICS SCHEMAS
+# ==========================================
+
+class MandiLiveStatsResponse(BaseModel):
+    total_bookings_today: int
+    vehicles_inside_mandi: int
+    completed_turnarounds_today: int
+    cancelled_today: int
+    avg_turnaround_minutes: float
+    green_channel_count: int
+    amber_channel_count: int
+
+class HourlyCongestionMetric(BaseModel):
+    slot_hour: str
+    booked_count: int
+    entered_count: int
+    capacity_limit: int = 10
+
+class ActiveVehicleDetail(BaseModel):
+    token_id: str
+    vehicle_number: str
+    phone_number: str
+    crop_name: str
+    channel: str
+    entry_time: str
+    dwell_minutes: int

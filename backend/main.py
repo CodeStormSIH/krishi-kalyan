@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import models
 from database import engine
-from routers import farmer, gate
+from routers import farmer, gate, admin
 
 # Supabase tables check/create
 models.Base.metadata.create_all(bind=engine)
@@ -29,3 +29,4 @@ def health_check():
 # Routers mounting
 app.include_router(farmer.router)
 app.include_router(gate.router)
+app.include_router(admin.router)

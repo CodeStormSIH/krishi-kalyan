@@ -214,3 +214,22 @@ class BookingResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ==========================================
+# 6. QUALITY ASSAYING & AUCTION SCHEMAS
+# ==========================================
+
+class CropAssayRequest(BaseModel):
+    token_id: str
+    inspector_name: str
+    moisture_percent: float
+    foreign_matter_percent: float
+    visual_inspection_notes: Optional[str] = None
+
+class CropAssayResponse(BaseModel):
+    token_id: str
+    crop_name: str
+    grade: str
+    status: str
+    assigned_auction_bay: str
+    message: str

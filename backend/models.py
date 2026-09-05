@@ -65,3 +65,10 @@ class Booking(Base):
     weight_variance_percent = Column(Float, nullable=True)
     fraud_flag = Column(Boolean, default=False)
     fraud_reason = Column(String, nullable=True)
+
+    # --- Quality Assaying & Auction Fields ---
+    moisture_percent = Column(Float, nullable=True)
+    foreign_matter_percent = Column(Float, nullable=True)
+    crop_grade = Column(String, nullable=True)
+    assigned_auction_bay = Column(String, nullable=True)
+    assay_remarks = Column(String, nullable=True)

@@ -144,3 +144,37 @@ class MandiTrafficResponse(BaseModel):
     max_capacity: int
     congestion_level: str
     estimated_turnaround_time_mins: int
+
+# ==========================================
+# 4. TRACTOR POOLING SCHEMAS
+# ==========================================
+from typing import List
+
+class CreatePoolRequest(BaseModel):
+    phone_number: str
+    crop_name: str
+    quantity_quintal: float
+    vehicle_number: str
+    vehicle_type: str = "TRACTOR_TROLLEY"
+    intended_mandi_id: Optional[str] = None
+    slot_time: Optional[str] = None
+
+class JoinPoolRequest(BaseModel):
+    pool_id: str
+    phone_number: str
+    crop_name: str
+    quantity_quintal: float
+
+class PoolMemberDetail(BaseModel):
+    token_id: str
+    phone_number: str
+    crop_name: str
+    quantity_quintal: float
+    is_leader: bool
+
+class PoolManifestResponse(BaseModel):
+    pool_id: str
+    vehicle_number: str
+    total_quantity_quintal: float
+    total_farmers: int
+    members: List[PoolMemberDetail]

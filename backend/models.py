@@ -52,3 +52,8 @@ class Booking(Base):
     intended_mandi_id = Column(String, nullable=True)
     actual_mandi_id = Column(String, nullable=True)
     is_rerouted = Column(Boolean, default=False)
+
+    # --- Pooling Fields ---
+    is_pool_master = Column(Boolean, default=False)
+    pool_id = Column(String, nullable=True, index=True)
+    parent_token_id = Column(String, nullable=True)

@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Wheat, LayoutDashboard, UserRound, CalendarDays, UsersRound, ClipboardList, WalletCards, Bell, History, CircleHelp, LogOut, Menu, Building2, ChartNoAxesCombined, Settings, TriangleAlert, Ticket, ShieldCheck, Globe } from 'lucide-react';
 import { useStore, canReadNotification } from '../services/store';
 import Sidebar from './Sidebar';
+import ThemeToggle from './ThemeToggle';
 import { useSidebar } from '../hooks/useSidebar';
 import '../styles/sidebar.css';
 export const navigation = {
@@ -61,6 +62,7 @@ export default function Layout() {
               : 'Manage your ' + title.toLowerCase() + ' information and services.'}</p>
           </div>
           <div className="top-actions">
+            <ThemeToggle />
             {role === 'operator' && (
               <select aria-label="Active procurement center" value={data.selectedCenter} onChange={e => update('selectedCenter', e.target.value)}>
                 {data.centers.filter(c => c.status === 'Active').map(c => <option key={c.id}>{c.name}</option>)}

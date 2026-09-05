@@ -80,3 +80,23 @@ test('operator-only stage editor is owned by the procurement portal', () => {
   assert.ok(!read('Admin-portal/src/routes.jsx').includes("path: 'stages'"));
 });
 
+test('the animated night mode switch is shared by login and every portal', () => {
+  const layout = read('Shared_with_all_portals/src/components/Layout.jsx');
+  const login = read('Shared_with_all_portals/src/pages/Login.jsx');
+  const toggle = read('Shared_with_all_portals/src/components/ThemeToggle.jsx');
+  const themeHook = read('Shared_with_all_portals/src/hooks/useTheme.js');
+  const themeCss = read('Shared_with_all_portals/src/styles/theme.css');
+  const mount = read('Shared_with_all_portals/src/mountPortal.jsx');
+
+  assert.ok(layout.includes('<ThemeToggle />'));
+  assert.ok(login.includes('<ThemeToggle className="login-theme-toggle" />'));
+  assert.ok(toggle.includes('aria-pressed={isDark}'));
+  assert.ok(themeHook.includes("krishi-theme"));
+  assert.ok(themeHook.includes("prefers-color-scheme: dark"));
+  assert.ok(themeCss.includes('.theme-toggle__knob'));
+  assert.ok(themeCss.includes('html[data-theme="dark"]'));
+  assert.ok(themeCss.includes('@media (prefers-reduced-motion: reduce)'));
+  assert.ok(mount.includes("import './styles/theme.css'"));
+  assert.ok(mount.includes('initializeTheme();'));
+});
+

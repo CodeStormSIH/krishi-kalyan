@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Building2, CheckCircle2, Mail, Phone, ShieldCheck, Smartphone, UsersRound, Wheat } from 'lucide-react';
 import { Card } from '../components/UI';
 import { Button, Field } from '../components/Shared';
+import ThemeToggle from '../components/ThemeToggle';
 import { useStore } from '../services/store';
 import '../styles/login.css';
 
@@ -72,6 +73,7 @@ export default function Login({ initialRole = 'farmer' }) {
 
   return (
     <div className="login-page">
+      <ThemeToggle className="login-theme-toggle" />
       <div className="login-story">
         <img className="login-brand-logo" src="/logo.png" alt="Krishi Kalyan logo" />
         <h1>Krishi Kalyan</h1>

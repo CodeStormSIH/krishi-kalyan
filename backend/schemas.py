@@ -178,3 +178,39 @@ class PoolManifestResponse(BaseModel):
     total_quantity_quintal: float
     total_farmers: int
     members: List[PoolMemberDetail]
+
+# ==========================================
+# 5. WEIGHBRIDGE & ANTI-FRAUD SCHEMAS
+# ==========================================
+
+class WeighbridgeGrossRequest(BaseModel):
+    token_id: str
+    gross_weight_quintal: float
+    weighbridge_operator: str
+
+class WeighbridgeTareRequest(BaseModel):
+    token_id: str
+    tare_weight_quintal: float
+    weighbridge_operator: str
+
+class WeighbridgeResponse(BaseModel):
+    token_id: str
+    status: str
+    declared_quantity_quintal: float
+    net_weight_quintal: Optional[float] = None
+    variance_percent: Optional[float] = None
+    fraud_flag: bool
+    assigned_status: str
+    message: str
+
+class BookingResponse(BaseModel):
+    status: str
+    token_id: str
+    channel: str
+    message: str
+    slot_time: Optional[datetime] = None
+    qr_image: Optional[str] = None
+    pool_id: Optional[str] = None  # <-- Yeh line add karein
+
+    class Config:
+        from_attributes = True

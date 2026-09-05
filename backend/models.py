@@ -57,3 +57,11 @@ class Booking(Base):
     is_pool_master = Column(Boolean, default=False)
     pool_id = Column(String, nullable=True, index=True)
     parent_token_id = Column(String, nullable=True)
+
+    # --- Weighbridge & Anti-Fraud Fields ---
+    gross_weight_quintal = Column(Float, nullable=True)
+    tare_weight_quintal = Column(Float, nullable=True)
+    net_weight_quintal = Column(Float, nullable=True)
+    weight_variance_percent = Column(Float, nullable=True)
+    fraud_flag = Column(Boolean, default=False)
+    fraud_reason = Column(String, nullable=True)

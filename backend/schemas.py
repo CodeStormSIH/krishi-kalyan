@@ -64,3 +64,44 @@ class VehicleLogRequest(BaseModel):
     manual_exit_gate: Optional[str] = None
     verified_by: Optional[str] = None
     audit_remark: Optional[str] = None
+
+class GateScanRequest(BaseModel):
+    token_id: str
+
+class GateScanResponse(BaseModel):
+    valid: bool
+    token_id: str
+    phone_number: str
+    crop_name: str
+    vehicle_number: str
+    vehicle_type: str
+    quantity_quintal: float
+    channel: str
+    status: str
+    assigned_bay: str
+    requires_transit_verification: bool
+    transit_permit: Optional[str] = None
+    message: str
+
+class GateEntryLogRequest(BaseModel):
+    token_id: str
+    operator_name: str
+    gate_number: str
+    is_manual: bool = False
+
+class TransitVerifyRequest(BaseModel):
+    token_id: str
+    verified_by: str
+    remarks: Optional[str] = None
+
+class GateExitLogRequest(BaseModel):
+    token_id: str
+    operator_name: str
+    gate_number: str
+    is_manual: bool = False
+
+class GateActionResponse(BaseModel):
+    status: str
+    token_id: str
+    message: str
+    total_vehicle_time: Optional[str] = None

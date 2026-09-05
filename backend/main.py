@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import models
 from database import engine
-from routers import farmer, gate, admin, weighbridge
+from routers import farmer, gate, admin, weighbridge,assaying
 
 # Supabase tables check/create
 models.Base.metadata.create_all(bind=engine)
@@ -31,3 +31,4 @@ app.include_router(farmer.router)
 app.include_router(gate.router)
 app.include_router(admin.router)
 app.include_router(weighbridge.router)
+app.include_router(assaying.router)

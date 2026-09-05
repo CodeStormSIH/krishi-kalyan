@@ -3,6 +3,15 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, Text
 from database import Base
 
+class Mandi(Base):
+    __tablename__ = "mandis"
+    
+    id = Column(String, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    district = Column(String, nullable=False)
+    max_capacity = Column(Integer, default=50)
+    current_active_vehicles = Column(Integer, default=0)
+
 class Booking(Base):
     __tablename__ = "bookings"
 
@@ -38,3 +47,8 @@ class Booking(Base):
     vehicle_exit_operator = Column(String, nullable=True)
     verified_by = Column(String, nullable=True)
     audit_remark = Column(String, nullable=True)
+    
+    # --- Multi-Mandi Fields ---
+    intended_mandi_id = Column(String, nullable=True)
+    actual_mandi_id = Column(String, nullable=True)
+    is_rerouted = Column(Boolean, default=False)

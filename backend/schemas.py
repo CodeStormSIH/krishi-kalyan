@@ -15,6 +15,7 @@ class BookingCreateRequest(BaseModel):
     quantity_quintal: float
     slot_time: datetime
     transit_permit: Optional[str] = None
+    intended_mandi_id: Optional[str] = None
 
 class BookingResponse(BaseModel):
     status: str
@@ -87,6 +88,7 @@ class GateEntryLogRequest(BaseModel):
     token_id: str
     operator_name: str
     gate_number: str
+    mandi_id: str
     is_manual: bool = False
 
 class TransitVerifyRequest(BaseModel):
@@ -133,3 +135,12 @@ class ActiveVehicleDetail(BaseModel):
     channel: str
     entry_time: str
     dwell_minutes: int
+
+class MandiTrafficResponse(BaseModel):
+    mandi_id: str
+    name: str
+    district: str
+    active_vehicles: int
+    max_capacity: int
+    congestion_level: str
+    estimated_turnaround_time_mins: int

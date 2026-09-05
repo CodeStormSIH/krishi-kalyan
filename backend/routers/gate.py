@@ -58,6 +58,15 @@ def log_gate_entry(req: schemas.GateEntryLogRequest, db: Session = Depends(get_d
     booking.is_manual_gate_in = req.is_manual
     booking.vehicle_in_status = "SCANNED"
     
+    # Multi-Mandi handling
+    booking.actual_mandi_id = req.mandi_id
+    if booking.intended_mandi_id and booking.intended_mandi_id != req.mandi_id:
+        booking.is_rerouted = True
+        
+    mandi = db.query(models.Mandi).filter(models.Mandi.id == req.mandi_id).first()
+    if mandi:
+        mandi.current_active_vehicles += 1
+    
     db.commit()
     return schemas.GateActionResponse(
         status="success",
@@ -113,6 +122,11 @@ def log_gate_exit(req: schemas.GateExitLogRequest, db: Session = Depends(get_db)
         total_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         booking.total_vehicle_time = total_time_str
         
+    if booking.actual_mandi_id:
+        mandi = db.query(models.Mandi).filter(models.Mandi.id == booking.actual_mandi_id).first()
+        if mandi and mandi.current_active_vehicles > 0:
+            mandi.current_active_vehicles -= 1
+            
     db.commit()
     return schemas.GateActionResponse(
         status="success",

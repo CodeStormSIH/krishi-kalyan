@@ -15,9 +15,39 @@ from datetime import timedelta
 from database import get_db
 import models, schemas
 
+from typing import List
+
 SLOT_CAPACITY_LIMIT = 50
 
 router = APIRouter(prefix="/api/v1/farmer", tags=["Farmer Module"])
+
+@router.get("/mandis/traffic", response_model=List[schemas.MandiTrafficResponse])
+def get_mandi_traffic(db: Session = Depends(get_db)):
+    mandis = db.query(models.Mandi).all()
+    result = []
+    for m in mandis:
+        # Calculate congestion
+        percentage = (m.current_active_vehicles / m.max_capacity) * 100 if m.max_capacity > 0 else 0
+        if percentage < 50:
+            congestion = "GREEN"
+        elif percentage <= 80:
+            congestion = "AMBER"
+        else:
+            congestion = "RED"
+            
+        # Simplified estimated turnaround (e.g. 15 mins per 10% capacity used)
+        eta = max(15, int(percentage * 0.5))
+        
+        result.append(schemas.MandiTrafficResponse(
+            mandi_id=m.id,
+            name=m.name,
+            district=m.district,
+            active_vehicles=m.current_active_vehicles,
+            max_capacity=m.max_capacity,
+            congestion_level=congestion,
+            estimated_turnaround_time_mins=eta
+        ))
+    return result
 
 @router.post("/booking/create", response_model=schemas.BookingResponse)
 def create_booking(req: schemas.BookingCreateRequest, db: Session = Depends(get_db)):
@@ -81,7 +111,8 @@ def create_booking(req: schemas.BookingCreateRequest, db: Session = Depends(get_
         slot_time=clean_time,
         channel=assigned_channel,
         status="CONFIRMED",
-        qr_image=qr_image_data
+        qr_image=qr_image_data,
+        intended_mandi_id=req.intended_mandi_id
     )
 
     db.add(new_booking)

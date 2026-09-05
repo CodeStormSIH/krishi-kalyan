@@ -32,3 +32,7 @@ app.include_router(gate.router)
 app.include_router(admin.router)
 app.include_router(weighbridge.router)
 app.include_router(assaying.router)
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}

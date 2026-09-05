@@ -121,7 +121,7 @@ export const initialData = {
   }],
   settings: {
     admin: {
-      systemName: 'Krishi_Kalyan_0.1',
+      systemName: 'Krishi Kalyan',
       language: 'English',
       timezone: 'Asia/Kolkata',
       dateFormat: 'DD MMM YYYY',

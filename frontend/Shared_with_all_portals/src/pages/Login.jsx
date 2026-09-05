@@ -73,13 +73,13 @@ export default function Login({ initialRole = 'farmer' }) {
   return (
     <div className="login-page">
       <div className="login-story">
-        <img className="login-brand-logo" src="/logo.png" alt="Krishi Kalyan logo" width="250"/>
-          <h1>Krishi Kalyan</h1>
+        <img className="login-brand-logo" src="/logo.png" alt="Krishi Kalyan logo" />
+        <h1>Krishi Kalyan</h1>
         <span>ONE PLATFORM. EVERY HARVEST.</span>
         <h2>A secure step<br />before your portal.</h2>
         <p>Choose the correct role, confirm your contact details, and verify the simulated OTP to continue.</p>
         <div className="login-features">
-          <span>✓ Role-based access</span><span>✓ Mobile verification</span><span>✓ Frontend demonstration</span>
+          <span>✓ Role-based access</span><span>✓ Mobile verification</span><span>✓ Email Verification</span>
         </div>
         <div className="login-crops">🌾 🌾 🌾</div>
       </div>

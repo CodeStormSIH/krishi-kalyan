@@ -136,7 +136,7 @@ export function download(name, rows) {
   }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Krishi_Kalyan_0.1-${name}.csv`;
+  a.download = `Krishi-Kalyan-${name}.csv`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

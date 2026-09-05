@@ -44,7 +44,7 @@
   color: #fff;
   background: var(--sidebar-green);
 }
-.portal-sidebar__brand > svg { color: #f6d55c; }
+.portal-sidebar__brand-logo { width: 44px; height: 44px; flex-shrink: 0; object-fit: contain; filter: brightness(0) invert(1); }
 .portal-sidebar__brand b { display: block; font-size: 15px; font-weight: 650; letter-spacing: -0.3px; }
 .portal-sidebar__brand span { display: block; margin-top: 3px; font-size: 11px; line-height: 1.4; }
 .portal-sidebar__profile { display: flex; flex-shrink: 0; align-items: center; gap: 11px; padding: 20px 16px; border-bottom: 1px solid var(--sidebar-border); }

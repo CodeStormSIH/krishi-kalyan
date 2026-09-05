@@ -14,7 +14,7 @@ export function Logout() {
     session
   } = useStore();
   const nav = useNavigate();
-  return <div className="logout-page"><Card><div className="logout-art"><ShieldCheck size={105} /></div><h2>Are you sure you want to logout?</h2><p>You will be logged out of the Krishi_Kalyan_0.1 {session.role} portal.</p><div className="button-row"><Button onClick={() => {
+  return <div className="logout-page"><Card><div className="logout-art"><ShieldCheck size={105} /></div><h2>Are you sure you want to logout?</h2><p>You will be logged out of the Krishi Kalyan {session.role} portal.</p><div className="button-row"><Button onClick={() => {
           logout();
           nav('/login', {
             replace: true,

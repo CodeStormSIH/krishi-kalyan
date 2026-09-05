@@ -1,4 +1,6 @@
 .login-page > .login-card { width: min(100%, 590px); max-width: 590px; }
+.login-brand-logo { display: block; width: 92px; height: 92px; margin: 0 0 14px; object-fit: contain; object-position: left center; }
+.login-story .login-brand-logo + h1 { margin-top: 0; }
 .login-card__heading { display: flex; align-items: center; gap: 13px; }
 .login-card__heading h2 { margin: 0; }
 .login-card__heading p { margin: 5px 0 0; }
@@ -34,6 +36,7 @@
 .login-secondary-actions button:disabled { color: #839088; }
 
 @media (max-width: 620px) {
+  .login-brand-logo { width: 72px; height: 72px; margin-bottom: 10px; }
   .login-role-options { grid-template-columns: 1fr; }
   .login-role-options button { min-height: 72px; flex-direction: row; align-items: center; }
   .login-role-options small { margin-right: 22px; }

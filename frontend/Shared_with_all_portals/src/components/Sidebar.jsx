@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Wheat, UserRound, Phone, LogOut, X } from 'lucide-react';
+import { UserRound, Phone, LogOut, X } from 'lucide-react';
 
 export default function Sidebar({ role, profile, center, unread, navigation, menu }) {
   const portalName = role === 'farmer' ? 'Farmer Portal' : role === 'admin' ? 'Admin Portal' : 'Procurement Center Portal';
@@ -28,8 +28,8 @@ export default function Sidebar({ role, profile, center, unread, navigation, men
           </button>
         )}
         <NavLink to={`/${role}/dashboard`} className="portal-sidebar__brand">
-          <Wheat size={32} aria-hidden="true" />
-          <div><b>Krishi_Kalyan_0.1</b><span>{portalName}</span></div>
+          <img className="portal-sidebar__brand-logo" src="/logo.png" alt="" aria-hidden="true" />
+          <div><b>Krishi Kalyan</b><span>{portalName}</span></div>
         </NavLink>
         <NavLink className="portal-sidebar__profile" to={`/${role}/profile`}>
           <div className="portal-sidebar__avatar">

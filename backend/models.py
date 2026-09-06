@@ -1,6 +1,6 @@
 # backend/models.py
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, Text
+from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, Text, JSON
 from database import Base
 
 class Mandi(Base):
@@ -72,3 +72,18 @@ class Booking(Base):
     crop_grade = Column(String, nullable=True)
     assigned_auction_bay = Column(String, nullable=True)
     assay_remarks = Column(String, nullable=True)
+
+
+class WebAppState(Base):
+    """Shared state for the existing web prototype screens.
+
+    Operational booking records remain normalized in their own tables. This
+    document persists the rest of the current web UI state without requiring a
+    visual redesign of every portal.
+    """
+
+    __tablename__ = "web_app_state"
+
+    id = Column(Integer, primary_key=True, default=1)
+    data = Column(JSON, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

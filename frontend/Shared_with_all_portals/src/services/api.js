@@ -59,6 +59,10 @@ export async function apiRequest(path, { body, signal, ...options } = {}) {
 
 export const backendApi = {
   health: () => apiRequest('/health'),
+  web: {
+    getState: () => apiRequest('/api/v1/web/state'),
+    saveState: data => apiRequest('/api/v1/web/state', { method: 'PUT', body: { data } }),
+  },
   farmer: {
     mandiTraffic: () => apiRequest('/api/v1/farmer/mandis/traffic'),
     createBooking: body => apiRequest('/api/v1/farmer/booking/create', { method: 'POST', body }),

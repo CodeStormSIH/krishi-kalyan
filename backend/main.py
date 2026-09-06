@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 import models
-from database import engine
+from database import engine, get_db
+from fastapi import Depends
 from routers import farmer, gate, admin, weighbridge,assaying
 
 # Supabase tables check/create
@@ -34,5 +37,15 @@ app.include_router(weighbridge.router)
 app.include_router(assaying.router)
 
 @app.get("/health")
-def health_check():
-    return {"status": "healthy"}
+def health_check(db: Session = Depends(get_db)):
+    """Readiness check used by the frontend and hosting platforms.
+
+    A successful response confirms both the API process and its configured
+    database connection, instead of reporting healthy while the database is
+    unavailable.
+    """
+    db.execute(text("SELECT 1"))
+    return {
+        "status": "healthy",
+        "services": {"api": "connected", "database": "connected"},
+    }

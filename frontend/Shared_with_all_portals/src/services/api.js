@@ -1,4 +1,4 @@
-const configuredBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const configuredBaseUrl = (import.meta.env?.VITE_API_BASE_URL || '').trim();
 const baseUrl = configuredBaseUrl.replace(/\/$/, '');
 
 function endpoint(path) {
@@ -89,4 +89,4 @@ export const backendApi = {
   },
 };
 
-export const apiBaseUrl = baseUrl || window.location.origin;
+export const apiBaseUrl = baseUrl || (typeof window === 'undefined' ? '' : window.location.origin);

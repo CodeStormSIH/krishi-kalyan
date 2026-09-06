@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { initialData, dateISO } from '../data/seed';
+import { backendApi } from './api';
 const Context = createContext(null);
 const KEY = 'krishi-kalyan-v1';
 function read() {
@@ -21,7 +22,37 @@ export function StoreProvider({
         return null;
       }
     }),
-    [toast, setToast] = useState('');
+    [toast, setToast] = useState(''),
+    [connection, setConnection] = useState({ status: 'checking', message: 'Checking backend…' });
+  useEffect(() => {
+    Promise.all([backendApi.health(), backendApi.farmer.mandiTraffic()])
+      .then(([health, mandis]) => {
+        const databaseConnected = health?.services?.database === 'connected' || health?.status === 'healthy';
+        setConnection({
+          status: databaseConnected ? 'connected' : 'error',
+          message: databaseConnected ? 'Backend and database connected' : 'Database health check failed'
+        });
+        if (!Array.isArray(mandis) || mandis.length === 0) return;
+        setData(current => ({
+          ...current,
+          centers: mandis.map(mandi => {
+            const existing = current.centers.find(center => center.id === mandi.mandi_id) || {};
+            return {
+              ...existing,
+              id: mandi.mandi_id,
+              name: mandi.name,
+              district: mandi.district,
+              status: 'Active',
+              activeVehicles: mandi.active_vehicles,
+              capacity: mandi.max_capacity,
+              congestion: mandi.congestion_level,
+              turnaroundMinutes: mandi.estimated_turnaround_time_mins,
+            };
+          })
+        }));
+      })
+      .catch(error => setConnection({ status: 'error', message: error.message }));
+  }, []);
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(data));
@@ -114,6 +145,7 @@ export function StoreProvider({
     logout,
     notify,
     advanceQueue,
+    connection,
     toast: setToast
   }}>{children}{toast && <div className="toast" role="status">✓ {toast}<button aria-label="Dismiss message" onClick={() => setToast('')}>×</button></div>}</Context.Provider>;
 }

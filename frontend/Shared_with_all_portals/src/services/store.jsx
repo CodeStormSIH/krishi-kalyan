@@ -2,10 +2,44 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { initialData, dateISO } from '../data/seed';
 const Context = createContext(null);
 const KEY = 'krishi-kalyan-v1';
+
+// 1. Cache Invalidation
+try {
+  const oldVal = localStorage.getItem(KEY);
+  if (oldVal && (oldVal.includes('Ram Prasad') || oldVal.includes('TK245689'))) {
+    localStorage.removeItem(KEY);
+  }
+} catch (e) {}
+
+function getInitialUser() {
+  try {
+    const user = JSON.parse(localStorage.getItem('krishi_user'));
+    return user || { full_name: 'Kisan Mitr', phone_number: '', role: 'FARMER' };
+  } catch {
+    return { full_name: 'Kisan Mitr', phone_number: '', role: 'FARMER' };
+  }
+}
+
+function getInitialBooking() {
+  try {
+    return JSON.parse(localStorage.getItem('latest_booking')) || null;
+  } catch {
+    return null;
+  }
+}
+
 function read() {
   try {
     const value = JSON.parse(localStorage.getItem(KEY));
-    return value?.tokens && value?.settings ? value : initialData;
+    let baseData = value?.tokens && value?.settings ? value : initialData;
+    
+    const activeBooking = getInitialBooking();
+    baseData.user = getInitialUser();
+    baseData.myToken = activeBooking;
+    baseData.procurement = activeBooking;
+    baseData.tokens = activeBooking ? [activeBooking] : [];
+    
+    return baseData;
   } catch {
     return initialData;
   }
@@ -67,6 +101,21 @@ export function StoreProvider({
     ...r,
     ...values
   } : r));
+  const setUser = (userData) => {
+    localStorage.setItem('krishi_user', JSON.stringify(userData));
+    setData(d => ({ ...d, user: userData }));
+  };
+
+  const addBooking = (newBooking) => {
+    localStorage.setItem('latest_booking', JSON.stringify(newBooking));
+    setData(d => ({
+      ...d,
+      myToken: newBooking,
+      procurement: newBooking,
+      tokens: [newBooking, ...(d.tokens || [])]
+    }));
+  };
+
   const login = account => {
     const s = typeof account === 'string' ? { role: account } : account;
     sessionStorage.setItem('krishi-session', JSON.stringify(s));
@@ -74,7 +123,12 @@ export function StoreProvider({
   };
   const logout = () => {
     sessionStorage.removeItem('krishi-session');
+    localStorage.removeItem('krishi_user');
+    localStorage.removeItem('krishi_token');
+    localStorage.removeItem('latest_booking');
+    localStorage.removeItem(KEY);
     setSession(null);
+    setData(read());
   };
   const notify = (title, message, category = 'Updates') => update('notifications', rows => [{
     id: crypto.randomUUID(),
@@ -112,6 +166,8 @@ export function StoreProvider({
     session,
     login,
     logout,
+    setUser,
+    addBooking,
     notify,
     advanceQueue,
     toast: setToast

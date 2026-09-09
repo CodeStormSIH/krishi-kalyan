@@ -65,7 +65,7 @@ export default function Sidebar({ role, profile, center, unread, navigation, men
             {role === 'operator' ? 'Raise Ticket' : 'Contact Support'}
           </NavLink>
         </div>
-        <NavLink className="portal-sidebar__logout" to={`/${role}/logout`}><LogOut size={19} aria-hidden="true" />Logout</NavLink>
+        <button className="portal-sidebar__logout" onClick={() => { localStorage.clear(); window.location.href = '/login'; }} style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'inherit', fontFamily: 'inherit', fontSize: 'inherit' }}><LogOut size={19} aria-hidden="true" />Logout</button>
       </aside>
     </>
   );

@@ -22,6 +22,9 @@ export function Logout() {
           });
         }}>Yes, Logout</Button><Button secondary onClick={() => nav(-1)}>Cancel</Button></div></Card></div>;
 }
+
+import { useFarmer } from '../context/FarmerContext';
+
 export function Profile() {
   const {
     data,
@@ -29,8 +32,18 @@ export function Profile() {
     update,
     toast
   } = useStore();
+  const { user } = useFarmer();
   const role = session.role;
-  const [form, setForm] = useState(data.profiles[role]);
+  const getInitialForm = () => {
+    let initial = { ...data.profiles[role] };
+    if (role === 'farmer' && user) {
+      initial.name = user.full_name || initial.name;
+      initial.email = user.email || initial.email;
+      initial.phone = user.phone_number || initial.phone;
+    }
+    return initial;
+  };
+  const [form, setForm] = useState(getInitialForm());
   const [error, setError] = useState('');
   const field = key => ({
     value: form[key] || '',

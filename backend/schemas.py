@@ -4,6 +4,61 @@ from typing import Optional
 from datetime import datetime
 
 # ==========================================
+# 0. AUTHENTICATION SCHEMAS
+# ==========================================
+
+class SendOtpRequest(BaseModel):
+    phone_number: str
+
+class SendOtpResponse(BaseModel):
+    status: str
+    phone_number: str
+    message: str
+    dev_otp: Optional[str] = None
+
+class VerifyOtpRequest(BaseModel):
+    phone_number: str
+    otp_code: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+
+class AuthResponse(BaseModel):
+    access_token: str
+    user_id: str
+    phone_number: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    role: str
+
+class ActiveBookingResponse(BaseModel):
+    token_id: str
+    status: str
+    channel: str
+    crop_name: str
+    quantity_quintal: float
+    vehicle_number: str
+    vehicle_type: str
+    slot_time: Optional[datetime] = None
+    qr_image: Optional[str] = None
+    intended_mandi_id: Optional[str] = None
+    actual_mandi_id: Optional[str] = None
+    moisture_percent: Optional[float] = None
+    crop_grade: Optional[str] = None
+    assigned_auction_bay: Optional[str] = None
+    gross_weight_quintal: Optional[float] = None
+    tare_weight_quintal: Optional[float] = None
+    net_weight_quintal: Optional[float] = None
+    fraud_flag: bool = False
+    pool_id: Optional[str] = None
+    is_pool_master: Optional[bool] = False
+    mandi_name: Optional[str] = None
+    mandi_district: Optional[str] = None
+    mandi_congestion: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+# ==========================================
 # 1. FARMER MODULE SCHEMAS
 # ==========================================
 

@@ -5,6 +5,7 @@ import './styles/common.css';
 import './styles/theme.css';
 import App from './App';
 import { initializeTheme } from './hooks/useTheme';
+import { FarmerProvider } from './context/FarmerContext';
 
 initializeTheme();
 
@@ -13,7 +14,9 @@ export function mountPortal(initialRole = 'farmer') {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
       <BrowserRouter>
-        <App initialRole={roleFromPath || initialRole} />
+        <FarmerProvider>
+          <App initialRole={roleFromPath || initialRole} />
+        </FarmerProvider>
       </BrowserRouter>
     </React.StrictMode>,
   );

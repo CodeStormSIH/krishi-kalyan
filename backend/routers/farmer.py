@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/v1/farmer", tags=["Farmer Module"])
 def generate_qr_base64(data: str) -> str:
     qr = qrcode.make(data)
     buf = io.BytesIO()
-    qr.save(buf, format="PNG")
+    qr.save(buf, kind="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
@@ -326,4 +326,55 @@ def get_pool_manifest(pool_id: str, db: Session = Depends(get_db)):
         total_quantity_quintal=round(total_qty, 2),
         total_farmers=len(bookings),
         members=members
+    )
+
+@router.get("/my-active-booking", response_model=schemas.ActiveBookingResponse)
+def get_my_active_booking(phone_number: str, db: Session = Depends(get_db)):
+    booking = db.query(models.Booking).filter(
+        models.Booking.phone_number == phone_number,
+        models.Booking.status.not_in(["CANCELLED", "COMPLETED", "USED"])
+    ).order_by(models.Booking.created_at.desc()).first()
+
+    if not booking:
+        raise HTTPException(status_code=404, detail="No active booking")
+    
+    mandi_id = booking.actual_mandi_id or booking.intended_mandi_id
+    mandi = None
+    if mandi_id:
+        mandi = db.query(models.Mandi).filter(models.Mandi.id == mandi_id).first()
+    
+    mandi_name = mandi.name if mandi else None
+    mandi_district = mandi.district if mandi else None
+    mandi_congestion = "GREEN"
+    if mandi and mandi.max_capacity > 0:
+        pct = (mandi.current_active_vehicles / mandi.max_capacity) * 100
+        if pct > 80:
+            mandi_congestion = "RED"
+        elif pct >= 50:
+            mandi_congestion = "AMBER"
+
+    return schemas.ActiveBookingResponse(
+        token_id=booking.token_id,
+        status=booking.status,
+        channel=booking.channel,
+        crop_name=booking.crop_name,
+        quantity_quintal=booking.quantity_quintal,
+        vehicle_number=booking.vehicle_number,
+        vehicle_type=booking.vehicle_type,
+        slot_time=booking.slot_time,
+        qr_image=booking.qr_image,
+        intended_mandi_id=booking.intended_mandi_id,
+        actual_mandi_id=booking.actual_mandi_id,
+        moisture_percent=booking.moisture_percent,
+        crop_grade=booking.crop_grade,
+        assigned_auction_bay=booking.assigned_auction_bay,
+        gross_weight_quintal=booking.gross_weight_quintal,
+        tare_weight_quintal=booking.tare_weight_quintal,
+        net_weight_quintal=booking.net_weight_quintal,
+        fraud_flag=booking.fraud_flag,
+        pool_id=booking.pool_id,
+        is_pool_master=booking.is_pool_master,
+        mandi_name=mandi_name,
+        mandi_district=mandi_district,
+        mandi_congestion=mandi_congestion
     )

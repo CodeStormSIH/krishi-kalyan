@@ -1,18 +1,97 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Building2, UsersRound, MapPin, CalendarDays, Bell, ArrowRight, Download } from 'lucide-react';
+import { Building2, UsersRound, MapPin, CalendarDays, Bell, ArrowRight, Download, Tractor } from 'lucide-react';
 import { Card, SectionTitle } from '@shared/components/UI';
 import { Badge, Button, Details, Instructions } from '@shared/components/Shared';
-import { useStore, money, download, canReadNotification } from '@shared/services/store';
-import { useMyToken, ProcurementProgress, PaymentProgress, MissingToken } from './FarmerTracking';
+import { ProcurementProgress, MissingToken } from './FarmerTracking';
+import { useFarmer } from '@shared/context/FarmerContext';
+
 export default function Dashboard() {
-  const {
-    data
-  } = useStore();
-  const token = useMyToken();
+  const { activeBooking: token, loading, user } = useFarmer();
   const [center, setCenter] = useState(null);
+
+  if (loading) return <div className="farmer-dashboard">Loading...</div>;
   if (!token) return <MissingToken />;
-  const queue = data.tokens.filter(t => t.center === token.center && ['In Queue', 'Checked In'].includes(t.status));
-  const position = queue.findIndex(t => t.id === token.id) + 1;
-  return <div className="farmer-dashboard"><div className="grid four dashboard-top"><Card className="tint-green"><SectionTitle title="My Current Token" /><div className="row-between"><span>Token Number</span><Badge>{token.status}</Badge></div><div className="token-big">{token.id}</div><div className="booking-meta"><div><small>Date</small><b>{token.date}</b></div><div><small>Time Slot</small><b>{token.slot}</b></div></div><NavLink className="outline-btn green" to="/farmer/book-token">View Token Details</NavLink></Card><Card className="tint-green"><SectionTitle title="My Queue Status" /><div className="row-between"><div><p>Current Position</p><div className="metric-big">{position || 'Called'} <small>{position ? `/ ${queue.length}` : ''}</small></div></div><span className="round-icon green"><UsersRound /></span></div><div className="wait-info"><small>Estimated Waiting Time</small><b>{Math.max(0, position - 1) * 5} – {Math.max(0, position - 1) * 5 + 5} min</b></div><NavLink className="outline-btn green" to="/farmer/queue">View Live Queue</NavLink></Card><Card className="tint-blue"><SectionTitle title="Procurement Center" /><div className="place"><span className="round-icon blue"><Building2 /></span><div><b>{token.center}</b><small>Village & Block {token.center.replace(' Center', '')}</small><small>District {token.center.replace(' Center', '')}, Bihar</small></div></div><button className="outline-btn blue" onClick={() => setCenter(data.centers.find(c => c.name === token.center))}><MapPin size={15} /> Center Details</button></Card><Card className="tint-purple"><SectionTitle title="Today's Booking" /><CalendarDays className="corner-icon purple" /><h3>{token.date}</h3><p>{token.slot}</p><Badge>Confirmed</Badge><NavLink className="outline-btn purple" to="/farmer/book-token">Reschedule / Cancel</NavLink></Card></div><div className="farmer-body"><div className="dashboard-main"><Card><SectionTitle title="Procurement Progress" /><ProcurementProgress token={token} /></Card><div className="grid two mt"><Card><SectionTitle title="Procurement Details" /><div className="detail-grid">{[['Crop Type', token.crop], ['Expected Quantity', `${token.quantity} Quintal`], ['Variety', token.variety], ['Rate (demo MSP)', `${money(token.rate)} / Quintal`]].map(([k, v]) => <div key={k}><small>{k}</small><b>{v}</b></div>)}</div></Card><Instructions /></div><Card className="mt"><SectionTitle title="Payment Status" /><div className="payment-dashboard"><PaymentProgress token={token} /><div className="expected-payment"><small>Expected Payment</small><h2>{money(token.quantity * token.rate)}</h2><p>For {token.quantity} Quintal {token.crop}</p><NavLink className="outline-btn blue" to="/farmer/payment">View Payment Details</NavLink></div></div></Card></div><div className="dashboard-aside"><Card><div className="section-title"><h2>Notifications</h2><NavLink className="linkish" to="/farmer/notifications">View All</NavLink></div>{data.notifications.filter(n => canReadNotification(n, 'farmer') && n.delivery === 'Sent').slice(0, 3).map(n => <NavLink to="/farmer/notifications" className="notice" key={n.id}><span className="notice-icon"><Bell size={19} /></span><div><b>{n.title}</b><p>{n.message}</p><small>{n.date}, {n.time}</small></div></NavLink>)}<NavLink className="view-all" to="/farmer/notifications">View All Notifications <ArrowRight size={14} /></NavLink></Card><Card className="mt"><SectionTitle title="Quick Actions" />{[['Book New Token', 'book-token', 'green'], ['My History', 'history', 'orange']].map(([name, path, color]) => <NavLink className={`quick ${color}`} key={path} to={`/farmer/${path}`}>{name}<ArrowRight /></NavLink>)}<button className="quick purple wide" onClick={() => download('procurement-documents', token)}><Download size={14} /> Download Documents <ArrowRight /></button><NavLink className="quick blue" to="/farmer/support">Help & Support <ArrowRight /></NavLink></Card></div></div>{center && <Details title="Procurement Center Details" row={center} onClose={() => setCenter(null)} />}</div>;
+
+  return (
+    <div className="farmer-dashboard">
+      <div className="grid four dashboard-top">
+        <Card className="tint-green">
+          <SectionTitle title="My Current Token" />
+          <div className="row-between"><span>Token Number</span><Badge>{token?.status}</Badge></div>
+          <div className="token-big">{token?.token_id}</div>
+          <div className="booking-meta">
+            <div><small>Date</small><b>{token?.slot_time ? new Date(token.slot_time).toLocaleDateString() : ''}</b></div>
+            <div><small>Time Slot</small><b>{token?.slot_time ? new Date(token.slot_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</b></div>
+          </div>
+          <NavLink className="outline-btn green" to="/farmer/book-token">View Token Details</NavLink>
+        </Card>
+        
+        <Card className="tint-blue">
+          <SectionTitle title="Vehicle & Transport" />
+          <div className="place">
+            <span className="round-icon blue"><Tractor /></span>
+            <div><b>{token?.vehicle_number}</b><small>{token?.vehicle_type}</small></div>
+          </div>
+          {token?.pool_id && (
+             <div className="mt" style={{ marginTop: '15px' }}>
+                <Badge>{token.is_pool_master ? 'Pool Leader' : 'Pool Member'}</Badge>
+                <small style={{display: 'block', marginTop: '5px'}}>ID: {token.pool_id}</small>
+             </div>
+          )}
+        </Card>
+
+        <Card className="tint-purple">
+          <SectionTitle title="Live Mandi Details" />
+          <div className="place">
+             <span className="round-icon purple"><Building2 /></span>
+             <div>
+                <b>{token?.mandi_name || 'Assigned Mandi'}</b>
+                <small>{token?.mandi_district || 'District'}</small>
+             </div>
+          </div>
+          <div className="mt" style={{ marginTop: '15px' }}>
+             <small>Live Congestion: </small>
+             <Badge className={token?.mandi_congestion === 'RED' ? 'danger' : token?.mandi_congestion === 'AMBER' ? 'warning' : 'success'}>
+               {token?.mandi_congestion || 'GREEN'}
+             </Badge>
+          </div>
+        </Card>
+
+        <Card className="tint-orange">
+           <SectionTitle title="Crop Assaying" />
+           {token?.moisture_percent ? (
+              <div>
+                 <h3>{token?.crop_grade} Grade</h3>
+                 <p>Moisture: {token.moisture_percent}%</p>
+                 <small>Bay: {token?.assigned_auction_bay || 'N/A'}</small>
+              </div>
+           ) : (
+              <p>Quality check pending at the lab.</p>
+           )}
+        </Card>
+      </div>
+
+      <div className="farmer-body">
+        <div className="dashboard-main">
+          <Card>
+            <SectionTitle title="Procurement Progress" />
+            <ProcurementProgress token={token} />
+          </Card>
+          <div className="grid two mt">
+            <Card>
+              <SectionTitle title="Procurement Details" />
+              <div className="detail-grid">
+                <div><small>Crop Type</small><b>{token?.crop_name}</b></div>
+                <div><small>Expected Quantity</small><b>{token?.quantity_quintal} Quintal</b></div>
+                <div><small>Verified Net Weight</small><b>{token?.net_weight_quintal ? token.net_weight_quintal + ' Quintal' : 'Pending'}</b></div>
+                <div><small>Channel</small><b>{token?.channel}</b></div>
+              </div>
+            </Card>
+            <Instructions />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

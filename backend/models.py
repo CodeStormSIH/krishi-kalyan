@@ -2,6 +2,27 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, Text
 from database import Base
+import uuid
+
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    phone_number = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, nullable=True)
+    full_name = Column(String, nullable=True)
+    role = Column(String, default="FARMER")
+    mandi_id = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class OtpSession(Base):
+    __tablename__ = "otp_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    phone_number = Column(String, index=True, nullable=False)
+    otp_code = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    is_verified = Column(Boolean, default=False)
 
 class Mandi(Base):
     __tablename__ = "mandis"

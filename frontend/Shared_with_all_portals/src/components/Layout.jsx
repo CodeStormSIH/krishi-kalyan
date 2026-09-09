@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { Wheat, LayoutDashboard, UserRound, CalendarDays, UsersRound, ClipboardList, WalletCards, Bell, History, CircleHelp, LogOut, Menu, Building2, ChartNoAxesCombined, Settings, TriangleAlert, Ticket, ShieldCheck, Globe } from 'lucide-react';
 import { useStore, canReadNotification } from '../services/store';
 import Sidebar from './Sidebar';
@@ -22,7 +22,19 @@ export default function Layout() {
   const location = useLocation();
   const menu = useSidebar(location.pathname);
   const page = location.pathname.split('/').pop();
-  const profile = data.profiles[role];
+  const krishiUserStr = localStorage.getItem('krishi_user');
+  if (!krishiUserStr) {
+    return <Navigate to="/login" replace />;
+  }
+  const krishiUser = JSON.parse(krishiUserStr);
+  
+  const profile = {
+    ...data.profiles[role],
+    name: krishiUser.full_name || krishiUser.name || 'Farmer',
+    email: krishiUser.email || '',
+    phone: krishiUser.phone_number || krishiUser.phone || ''
+  };
+
   const unread = data.notifications.filter(n => canReadNotification(n, role) && !n.read && n.delivery === 'Sent').length;
   const title = page === 'dashboard' ? role === 'farmer' ? `Good Morning, ${profile.name}! 👋` : role === 'admin' ? 'Admin Dashboard' : 'Procurement Center Dashboard' : navigation[role].find(n => n[0] === page)?.[1] || {
     support: 'Help & Support',
@@ -81,9 +93,15 @@ export default function Layout() {
             <NavLink className="icon-btn" to={`/${role}/notifications`} aria-label={`Notifications, ${unread} unread`}>
               <Bell size={19} />{unread > 0 && <span>{unread}</span>}
             </NavLink>
-            <NavLink className="logout-top" to={`/${role}/${role === 'farmer' ? 'logout' : 'profile'}`}>
-              {role === 'farmer' ? <LogOut size={17} /> : <UserRound size={17} />} {role === 'farmer' ? 'Logout' : 'Profile'}
-            </NavLink>
+            {role === 'farmer' ? (
+              <button className="logout-top icon-btn" style={{ fontSize: '0.9rem', width: 'auto', padding: '0 10px' }} onClick={() => { localStorage.clear(); window.location.href = '/login'; }}>
+                <LogOut size={17} /> Logout
+              </button>
+            ) : (
+              <NavLink className="logout-top" to={`/${role}/profile`}>
+                <UserRound size={17} /> Profile
+              </NavLink>
+            )}
           </div>
         </header>
         <div className="content">

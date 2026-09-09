@@ -5,9 +5,8 @@ import { Card } from '../components/UI';
 import { Button, Field } from '../components/Shared';
 import ThemeToggle from '../components/ThemeToggle';
 import { useStore } from '../services/store';
+import { api } from '../services/api';
 import '../styles/login.css';
-
-export const DEMO_OTP = '123456';
 
 const roles = [
   ['farmer', 'Farmer Portal', 'Book tokens and track procurement', UsersRound],
@@ -23,7 +22,7 @@ export default function Login({ initialRole = 'farmer' }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [role, setRole] = useState(location.state?.role || initialRole);
-  const [credentials, setCredentials] = useState({ email: '', phone: '' });
+  const [credentials, setCredentials] = useState({ name: '', email: '', phone: '' });
   const [step, setStep] = useState('details');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
@@ -42,26 +41,47 @@ export default function Login({ initialRole = 'farmer' }) {
     onChange: event => setCredentials(current => ({ ...current, [name]: event.target.value })),
   });
 
-  function sendOtp(event) {
+  async function sendOtp(event) {
     event.preventDefault();
     setError('');
-    setOtp('');
-    setResendIn(30);
-    setStep('otp');
+    try {
+      const response = await api.sendOtp(credentials.phone);
+      if (response.dev_otp) {
+        setOtp(response.dev_otp); // Auto-fill for hackathon demo
+      } else {
+        setOtp('');
+      }
+      setResendIn(30);
+      setStep('otp');
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP');
+    }
   }
 
-  function verifyOtp(event) {
+  async function verifyOtp(event) {
     event.preventDefault();
-    if (otp !== DEMO_OTP) {
-      setError('Incorrect OTP. For this frontend demo, use 123456.');
-      return;
+    setError('');
+    try {
+      const response = await api.verifyOtp({
+        phone_number: credentials.phone,
+        otp_code: otp,
+        email: credentials.email.trim().toLowerCase(),
+        full_name: credentials.name.trim(),
+      });
+      
+      localStorage.setItem('krishi_user', JSON.stringify(response));
+      localStorage.setItem('krishi_token', response.access_token);
+
+      login({
+        role,
+        email: credentials.email.trim().toLowerCase(),
+        phone: credentials.phone,
+        name: credentials.name,
+      });
+      navigate(`/${role}/dashboard`, { replace: true });
+    } catch (err) {
+      setError(err.message || 'Incorrect OTP or verification failed.');
     }
-    login({
-      role,
-      email: credentials.email.trim().toLowerCase(),
-      phone: credentials.phone,
-    });
-    navigate(`/${role}/dashboard`, { replace: true });
   }
 
   function chooseRole(value) {
@@ -125,6 +145,10 @@ export default function Login({ initialRole = 'farmer' }) {
 
             <div className="login-fields">
               <div className="login-input-wrap">
+                <UsersRound size={17} aria-hidden="true" />
+                <Field label="Full Name" name="name" type="text" autoComplete="name" placeholder="John Doe" required {...field('name')} />
+              </div>
+              <div className="login-input-wrap">
                 <Mail size={17} aria-hidden="true" />
                 <Field label="Email address" name="email" type="email" autoComplete="email" placeholder="name@example.com" required {...field('email')} />
               </div>
@@ -177,7 +201,7 @@ export default function Login({ initialRole = 'farmer' }) {
               autoFocus
               required
             />
-            <div className="demo-otp" role="note"><ShieldCheck size={17} />Frontend demo OTP: <strong>{DEMO_OTP}</strong></div>
+            <div className="demo-otp" role="note"><ShieldCheck size={17} />OTP sent to your phone. (Auto-filled: <strong>{otp}</strong>)</div>
             {error && <p className="login-error" role="alert">{error}</p>}
             <Button type="submit" disabled={otp.length !== 6}>Verify OTP & Enter Portal</Button>
             <div className="login-secondary-actions">

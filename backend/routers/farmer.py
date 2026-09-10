@@ -53,6 +53,178 @@ def get_mandi_traffic(db: Session = Depends(get_db)):
     return result
 
 
+@router.get("/center-crowd/{mandi_id}", response_model=schemas.CenterCrowdResponse)
+def get_center_crowd(mandi_id: str, db: Session = Depends(get_db)):
+    mandi = db.query(models.Mandi).filter(
+        (models.Mandi.id == mandi_id) | (models.Mandi.name.ilike(f"%{mandi_id}%"))
+    ).first()
+
+    name = mandi.name if mandi else f"{mandi_id} Center"
+    district = mandi.district if mandi else "Bihar"
+    max_capacity = mandi.max_capacity if mandi and mandi.max_capacity > 0 else 50
+    active_vehicles = mandi.current_active_vehicles if mandi else 0
+
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    waiting_query = db.query(models.Booking).filter(
+        models.Booking.status.in_(["BOOKED", "CONFIRMED"]),
+        models.Booking.created_at >= today_start
+    )
+    if mandi:
+        waiting_query = waiting_query.filter(
+            (models.Booking.actual_mandi_id == mandi.id) | (models.Booking.intended_mandi_id == mandi.id)
+        )
+    waiting_count = waiting_query.count()
+
+    total_active = max(active_vehicles, waiting_count)
+    pct = min(100, int((total_active / max_capacity) * 100))
+
+    if pct < 45:
+        congestion_level = "GREEN"
+        congestion_label = "Low Crowd"
+        status_message = "Smooth traffic flow. Minimal wait times (~5-10 mins)."
+    elif pct <= 75:
+        congestion_level = "AMBER"
+        congestion_label = "Moderate Crowd"
+        status_message = "Steady inflow. Expected queue wait is approx 20-30 mins."
+    else:
+        congestion_level = "RED"
+        congestion_label = "Heavy Congestion"
+        status_message = "High congestion. Center bays near full capacity. Delays expected."
+
+    avg_service_time = 5
+    estimated_wait = max(5, waiting_count * avg_service_time)
+
+    return schemas.CenterCrowdResponse(
+        center_id=mandi.id if mandi else mandi_id,
+        center_name=name,
+        district=district,
+        active_vehicles=total_active,
+        waiting_farmers=waiting_count,
+        max_capacity=max_capacity,
+        capacity_percentage=pct,
+        congestion_level=congestion_level,
+        congestion_label=congestion_label,
+        avg_service_time_mins=avg_service_time,
+        estimated_wait_time_mins=estimated_wait,
+        status_message=status_message
+    )
+
+
+@router.get("/queue-estimate", response_model=schemas.FarmerQueueEstimateResponse)
+def get_farmer_queue_estimate(
+    phone_number: Optional[str] = None,
+    token_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Booking)
+    if token_id:
+        query = query.filter(models.Booking.token_id == token_id)
+    elif phone_number:
+        query = query.filter(
+            models.Booking.phone_number == phone_number,
+            models.Booking.status.in_(["BOOKED", "CONFIRMED", "GATE_IN", "GROSS_WEIGHED"])
+        ).order_by(models.Booking.created_at.desc())
+    else:
+        raise HTTPException(status_code=400, detail="Provide phone_number or token_id")
+
+    booking = query.first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="No active booking found")
+
+    mandi_id = booking.actual_mandi_id or booking.intended_mandi_id
+    mandi = db.query(models.Mandi).filter(models.Mandi.id == mandi_id).first() if mandi_id else None
+    center_name = mandi.name if mandi else "Procurement Center"
+    max_cap = mandi.max_capacity if mandi else 50
+    active_veh = mandi.current_active_vehicles if mandi else 1
+
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    ahead_count = db.query(models.Booking).filter(
+        models.Booking.created_at >= today_start,
+        models.Booking.created_at < booking.created_at,
+        models.Booking.status.in_(["BOOKED", "CONFIRMED"])
+    )
+    if mandi_id:
+        ahead_count = ahead_count.filter(
+            (models.Booking.actual_mandi_id == mandi_id) | (models.Booking.intended_mandi_id == mandi_id)
+        )
+    farmers_ahead = ahead_count.count()
+    queue_pos = farmers_ahead + 1
+
+    avg_service = 5
+    estimated_wait = farmers_ahead * avg_service
+    pct = min(100, int(((farmers_ahead + 1) / max_cap) * 100))
+
+    if pct < 45:
+        congestion = "GREEN"
+        crowd_label = "Low Crowd"
+    elif pct <= 75:
+        congestion = "AMBER"
+        crowd_label = "Moderate Crowd"
+    else:
+        congestion = "RED"
+        crowd_label = "Heavy Congestion"
+
+    if booking.status == "GATE_IN":
+        msg = "You are currently inside the procurement center. Proceed to verification bay."
+        estimated_wait = 0
+    elif queue_pos == 1:
+        msg = "You are next in line! Please proceed towards Gate 1."
+        estimated_wait = max(2, avg_service)
+    else:
+        msg = f"{farmers_ahead} farmers are ahead of you in queue. Estimated wait is ~{estimated_wait} mins."
+
+    return schemas.FarmerQueueEstimateResponse(
+        token_id=booking.token_id,
+        phone_number=booking.phone_number,
+        center_id=mandi_id,
+        center_name=center_name,
+        queue_position=queue_pos,
+        farmers_ahead=farmers_ahead,
+        estimated_wait_time_mins=estimated_wait,
+        center_congestion=congestion,
+        center_crowd_label=crowd_label,
+        active_vehicles=active_veh,
+        max_capacity=max_cap,
+        capacity_percentage=pct,
+        status=booking.status,
+        status_message=msg
+    )
+
+
+@router.post("/center/call-next")
+def call_next_token(center_id: str, db: Session = Depends(get_db)):
+    mandi = db.query(models.Mandi).filter(
+        (models.Mandi.id == center_id) | (models.Mandi.name.ilike(f"%{center_id}%"))
+    ).first()
+    
+    query = db.query(models.Booking).filter(
+        models.Booking.status.in_(["BOOKED", "CONFIRMED"])
+    ).order_by(models.Booking.created_at.asc())
+    
+    if mandi:
+        query = query.filter(
+            (models.Booking.actual_mandi_id == mandi.id) | (models.Booking.intended_mandi_id == mandi.id)
+        )
+        
+    next_booking = query.first()
+    if not next_booking:
+        return {"status": "empty", "message": "No farmers currently waiting in queue."}
+
+    next_booking.status = "GATE_IN"
+    next_booking.entry_gate_in_time = datetime.utcnow()
+    if mandi:
+        mandi.current_active_vehicles += 1
+    db.commit()
+
+    return {
+        "status": "success",
+        "token_id": next_booking.token_id,
+        "farmer_name": next_booking.phone_number,
+        "crop": next_booking.crop_name,
+        "message": f"Token {next_booking.token_id} called into gate for verification."
+    }
+
+
 @router.post("/booking/create", response_model=schemas.BookingResponse)
 def create_booking(req: schemas.BookingCreateRequest, db: Session = Depends(get_db)):
     # Anti-Fraud Rule 1: One Phone = One Active Token

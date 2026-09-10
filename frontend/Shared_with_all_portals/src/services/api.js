@@ -1,4 +1,7 @@
-const BASE_URL = 'http://localhost:8000/api/v1';
+const configuredBaseUrl = (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_API_BASE_URL || '').trim();
+const baseUrl = configuredBaseUrl.replace(/\/$/, '');
+
+const BASE_URL = baseUrl || 'http://localhost:8000/api/v1';
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('krishi_token');
@@ -11,30 +14,37 @@ async function request(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const { timeout = 3000, signal: customSignal, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  const signal = customSignal || controller.signal;
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'API request failed');
+  try {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+      signal,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `API request failed with status ${response.status}`);
+    }
+
+    return await response.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json();
 }
 
 export const api = {
-  sendOtp: (phoneNumber) => request('/auth/send-otp', { method: 'POST', body: JSON.stringify({ phone_number: phoneNumber }) }),
-  verifyOtp: (payload) => request('/auth/verify-otp', { method: 'POST', body: JSON.stringify(payload) }),
-  getCurrentUser: () => request('/auth/me'),
-  getActiveBooking: (phoneNumber) => request(`/farmer/my-active-booking?phone_number=${phoneNumber}`),
-  getMandiDetails: (mandiId) => request(`/farmer/mandis/traffic`),
-  createBooking: (payload) => request('/farmer/booking/create', { method: 'POST', body: JSON.stringify(payload) }),
+  sendOtp: (phoneNumber, options = {}) => request('/auth/send-otp', { method: 'POST', body: JSON.stringify({ phone_number: phoneNumber }), ...options }),
+  verifyOtp: (payload, options = {}) => request('/auth/verify-otp', { method: 'POST', body: JSON.stringify(payload), ...options }),
+  getCurrentUser: (options = {}) => request('/auth/me', { ...options }),
+  getActiveBooking: (phoneNumber, options = {}) => request(`/farmer/my-active-booking?phone_number=${phoneNumber}`, { ...options }),
+  getMandiDetails: (mandiId, options = {}) => request(`/farmer/mandis/traffic`, { ...options }),
+  createBooking: (payload, options = {}) => request('/farmer/booking/create', { method: 'POST', body: JSON.stringify(payload), ...options }),
 };
-
-const configuredBaseUrl = (import.meta.env?.VITE_API_BASE_URL || '').trim();
-const baseUrl = configuredBaseUrl.replace(/\/$/, '');
 
 function getEndpoint(path) {
   if (baseUrl) return `${baseUrl}${path}`;
@@ -107,6 +117,11 @@ export const backendApi = {
     createPool: body => apiRequest('/api/v1/farmer/pool/create', { method: 'POST', body }),
     joinPool: body => apiRequest('/api/v1/farmer/pool/join', { method: 'POST', body }),
     poolManifest: poolId => apiRequest(`/api/v1/farmer/pool/${encodeURIComponent(poolId)}/manifest`),
+    centerCrowd: centerId => apiRequest(`/api/v1/farmer/center-crowd/${encodeURIComponent(centerId)}`),
+    queueEstimate: params => apiRequest(`/api/v1/farmer/queue-estimate?${new URLSearchParams(params).toString()}`),
+  },
+  center: {
+    callNext: centerId => apiRequest(`/api/v1/farmer/center/call-next?center_id=${encodeURIComponent(centerId)}`, { method: 'POST' }),
   },
   gate: {
     scan: body => apiRequest('/api/v1/gate/scan', { method: 'POST', body }),

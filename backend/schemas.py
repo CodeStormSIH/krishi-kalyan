@@ -15,6 +15,7 @@ class SendOtpResponse(BaseModel):
     phone_number: str
     message: str
     dev_otp: Optional[str] = None
+    delivery_method: Optional[str] = "SIMULATED"
 
 class VerifyOtpRequest(BaseModel):
     phone_number: str

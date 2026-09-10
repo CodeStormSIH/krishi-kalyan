@@ -1,14 +1,85 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+import os
+import requests
 import random
 import uuid
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 import models
 import schemas
 from database import get_db
 
 router = APIRouter()
+
+def dispatch_real_sms(phone_number: str, otp_code: str) -> tuple[bool, str]:
+    """
+    Attempts to dispatch real SMS via configured SMS gateways in order of preference:
+    1. Fast2SMS (Best for Indian numbers - requires FAST2SMS_API_KEY)
+    2. Twilio (Global - requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER)
+    3. 2Factor.in (Indian numbers - requires TWOFACTOR_API_KEY)
+    """
+    cleaned_10 = "".join(filter(str.isdigit, phone_number))[-10:]
+
+    # 1. Try Fast2SMS
+    fast2sms_key = os.getenv("FAST2SMS_API_KEY")
+    if fast2sms_key:
+        try:
+            url = "https://www.fast2sms.com/dev/bulkV2"
+            payload = {
+                "variables_values": otp_code,
+                "route": "otp",
+                "numbers": cleaned_10,
+            }
+            headers = {
+                "authorization": fast2sms_key,
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+            res = requests.post(url, data=payload, headers=headers, timeout=6)
+            res_json = res.json()
+            if res_json.get("return") is True:
+                print(f"[FAST2SMS SUCCESS] Real SMS dispatched to {cleaned_10}")
+                return True, "Fast2SMS"
+            else:
+                print(f"[FAST2SMS RESPONSE] {res_json}")
+        except Exception as e:
+            print(f"[FAST2SMS ERROR] {e}")
+
+    # 2. Try Twilio
+    twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+    twilio_from = os.getenv("TWILIO_PHONE_NUMBER")
+    if twilio_sid and twilio_token and twilio_from:
+        try:
+            to_num = phone_number if phone_number.startswith("+") else f"+91{cleaned_10}"
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{twilio_sid}/Messages.json"
+            payload = {
+                "From": twilio_from,
+                "To": to_num,
+                "Body": f"Your Krishi Kalyan verification code is: {otp_code}. Valid for 5 minutes."
+            }
+            res = requests.post(url, data=payload, auth=(twilio_sid, twilio_token), timeout=6)
+            if res.status_code in [200, 201]:
+                print(f"[TWILIO SUCCESS] Real SMS dispatched to {to_num}")
+                return True, "Twilio"
+            else:
+                print(f"[TWILIO ERROR] Status: {res.status_code}, Body: {res.text}")
+        except Exception as e:
+            print(f"[TWILIO ERROR] {e}")
+
+    # 3. Try 2Factor.in
+    twofactor_key = os.getenv("TWOFACTOR_API_KEY")
+    if twofactor_key:
+        try:
+            url = f"https://2factor.in/v2/API/V1/{twofactor_key}/SMS/{cleaned_10}/{otp_code}"
+            res = requests.get(url, timeout=6)
+            if res.status_code == 200 and "Status" in res.text and "Success" in res.text:
+                print(f"[2FACTOR SUCCESS] Real SMS dispatched to {cleaned_10}")
+                return True, "2Factor"
+        except Exception as e:
+            print(f"[2FACTOR ERROR] {e}")
+
+    return False, "NONE"
 
 @router.post("/send-otp", response_model=schemas.SendOtpResponse)
 def send_otp(request: schemas.SendOtpRequest, db: Session = Depends(get_db)):
@@ -24,14 +95,26 @@ def send_otp(request: schemas.SendOtpRequest, db: Session = Depends(get_db)):
     db.add(otp_session)
     db.commit()
 
-    print(f"[SMS GATEWAY SIMULATION] OTP for {phone_number}: {otp_code}")
+    # Attempt real SMS dispatch
+    sms_sent, provider = dispatch_real_sms(phone_number, otp_code)
 
-    return schemas.SendOtpResponse(
-        status="SUCCESS",
-        phone_number=phone_number,
-        message="OTP sent successfully",
-        dev_otp=otp_code
-    )
+    if sms_sent:
+        return schemas.SendOtpResponse(
+            status="SUCCESS",
+            phone_number=phone_number,
+            message=f"Real OTP sent to {phone_number} via {provider}",
+            dev_otp=None,
+            delivery_method="SMS"
+        )
+    else:
+        print(f"[SMS GATEWAY SIMULATION] No real SMS Gateway configured in .env. OTP for {phone_number}: {otp_code}")
+        return schemas.SendOtpResponse(
+            status="SUCCESS",
+            phone_number=phone_number,
+            message="OTP generated (simulation mode)",
+            dev_otp=otp_code,
+            delivery_method="SIMULATED"
+        )
 
 @router.post("/verify-otp", response_model=schemas.AuthResponse)
 def verify_otp(request: schemas.VerifyOtpRequest, db: Session = Depends(get_db)):

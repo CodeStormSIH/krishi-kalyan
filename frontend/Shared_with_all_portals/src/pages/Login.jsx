@@ -31,6 +31,7 @@ export default function Login({ initialRole = 'farmer' }) {
 
   const [expectedOtp, setExpectedOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRealSms, setIsRealSms] = useState(false);
 
   useEffect(() => {
     if (step !== 'otp' || resendIn <= 0) return;
@@ -58,11 +59,17 @@ export default function Login({ initialRole = 'farmer' }) {
     setLoading(true);
     const demoOtp = Math.floor(100000 + Math.random() * 900000).toString();
     let finalOtp = demoOtp;
+    let realSmsDelivered = false;
 
     try {
-      const response = await api.sendOtp(cleanedPhone, { timeout: 2500 });
+      const response = await api.sendOtp(cleanedPhone, { timeout: 4000 });
+      if (response && response.delivery_method === 'SMS') {
+        realSmsDelivered = true;
+      }
       if (response && response.dev_otp) {
         finalOtp = String(response.dev_otp);
+      } else if (response && !response.dev_otp) {
+        realSmsDelivered = true;
       }
     } catch (err) {
       console.warn('Backend OTP service offline or unavailable, continuing with demo OTP:', err.message);
@@ -70,8 +77,13 @@ export default function Login({ initialRole = 'farmer' }) {
       setLoading(false);
     }
 
+    setIsRealSms(realSmsDelivered);
     setExpectedOtp(finalOtp);
-    setOtp(finalOtp); // Auto-fill for hackathon demo & quick testing
+    if (realSmsDelivered) {
+      setOtp(''); // User enters the real SMS received on their phone!
+    } else {
+      setOtp(finalOtp); // Auto-fill for hackathon demo & quick testing
+    }
     setResendIn(30);
     setStep('otp');
   }
@@ -138,16 +150,27 @@ export default function Login({ initialRole = 'farmer' }) {
     setError('');
     const demoOtp = Math.floor(100000 + Math.random() * 900000).toString();
     let finalOtp = demoOtp;
+    let realSmsDelivered = false;
     try {
-      const response = await api.sendOtp(credentials.phone, { timeout: 2500 });
+      const response = await api.sendOtp(credentials.phone, { timeout: 4000 });
+      if (response && response.delivery_method === 'SMS') {
+        realSmsDelivered = true;
+      }
       if (response && response.dev_otp) {
         finalOtp = String(response.dev_otp);
+      } else if (response && !response.dev_otp) {
+        realSmsDelivered = true;
       }
     } catch {
       // Ignore backend error during resend in demo
     }
+    setIsRealSms(realSmsDelivered);
     setExpectedOtp(finalOtp);
-    setOtp(finalOtp);
+    if (realSmsDelivered) {
+      setOtp('');
+    } else {
+      setOtp(finalOtp);
+    }
     setResendIn(30);
   }
 
@@ -297,7 +320,15 @@ export default function Login({ initialRole = 'farmer' }) {
               autoFocus
               required
             />
-            <div className="demo-otp" role="note"><ShieldCheck size={17} />OTP sent to your phone. (Auto-filled: <strong>{otp || expectedOtp}</strong>)</div>
+            {isRealSms ? (
+              <div className="demo-otp" role="note" style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac', color: '#166534' }}>
+                <ShieldCheck size={17} />Real SMS OTP sent to <strong>{maskPhone(credentials.phone)}</strong>. Check your mobile SMS!
+              </div>
+            ) : (
+              <div className="demo-otp" role="note">
+                <ShieldCheck size={17} />OTP sent to your phone. (Auto-filled: <strong>{otp || expectedOtp}</strong>)
+              </div>
+            )}
             {error && <p className="login-error" role="alert">{error}</p>}
             <Button type="submit" disabled={otp.length !== 6 || loading}>
               {loading ? 'Verifying…' : 'Verify OTP & Enter Portal'}

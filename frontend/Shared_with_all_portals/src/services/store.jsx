@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { initialData, dateISO } from '../data/seed';
+import { backendApi } from './api';
 const Context = createContext(null);
 const KEY = 'krishi-kalyan-v1';
 
@@ -55,7 +56,55 @@ export function StoreProvider({
         return null;
       }
     }),
-    [toast, setToast] = useState('');
+    [toast, setToast] = useState(''),
+    [connection, setConnection] = useState({ status: 'checking', message: 'Checking backend…' }),
+    [backendReady, setBackendReady] = useState(false);
+  useEffect(() => {
+    Promise.all([backendApi.health(), backendApi.farmer.mandiTraffic(), backendApi.web.getState()])
+      .then(([health, mandis, saved]) => {
+        const databaseConnected = health?.services?.database === 'connected' || health?.status === 'healthy';
+        setConnection({
+          status: databaseConnected ? 'connected' : 'error',
+          message: databaseConnected ? 'Backend and database connected' : 'Database health check failed'
+        });
+        if (saved?.data?.tokens && saved?.data?.settings) {
+          setData(saved.data);
+          setBackendReady(true);
+          return;
+        }
+        if (Array.isArray(mandis) && mandis.length > 0) {
+          setData(current => ({
+            ...current,
+            centers: mandis.map(mandi => {
+              const existing = current.centers.find(center => center.id === mandi.mandi_id) || {};
+              return {
+                ...existing,
+                id: mandi.mandi_id,
+                name: mandi.name,
+                district: mandi.district,
+                status: 'Active',
+                activeVehicles: mandi.active_vehicles,
+                capacity: mandi.max_capacity,
+                congestion: mandi.congestion_level,
+                turnaroundMinutes: mandi.estimated_turnaround_time_mins,
+              };
+            })
+          }));
+        }
+        setBackendReady(true);
+      })
+      .catch(error => {
+        setConnection({ status: 'error', message: error.message });
+        setToast(error.message);
+      });
+  }, []);
+  useEffect(() => {
+    if (!backendReady) return;
+    const timer = window.setTimeout(() => {
+      backendApi.web.saveState(data).catch(error => setToast(error.message));
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [data, backendReady]);
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(data));
@@ -170,6 +219,7 @@ export function StoreProvider({
     addBooking,
     notify,
     advanceQueue,
+    connection,
     toast: setToast
   }}>{children}{toast && <div className="toast" role="status">✓ {toast}<button aria-label="Dismiss message" onClick={() => setToast('')}>×</button></div>}</Context.Provider>;
 }

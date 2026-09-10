@@ -15,7 +15,8 @@ export default function Layout() {
   const {
     session,
     data,
-    update
+    update,
+    connection
   } = useStore();
   const role = session.role;
   const [language, setLanguage] = useState(() => localStorage.getItem('krishi-language') || 'English');
@@ -74,6 +75,14 @@ export default function Layout() {
               : 'Manage your ' + title.toLowerCase() + ' information and services.'}</p>
           </div>
           <div className="top-actions">
+            <span
+              className={`connection-status connection-status--${connection.status}`}
+              title={connection.message}
+              role="status"
+            >
+              <span aria-hidden="true">●</span>
+              {connection.status === 'connected' ? 'API connected' : connection.status === 'error' ? 'API offline' : 'Connecting…'}
+            </span>
             <ThemeToggle />
             {role === 'operator' && (
               <select aria-label="Active procurement center" value={data.selectedCenter} onChange={e => update('selectedCenter', e.target.value)}>

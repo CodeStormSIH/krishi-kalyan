@@ -13,7 +13,20 @@ export default defineConfig({
   },
   // Imported assets belong to each portal's src/assets folder.
   publicDir: resolve('./Shared_with_all_portals/public'),
-  server: { host: '127.0.0.1' },
+  server: {
+    host: '127.0.0.1',
+    proxy: {
+      '/api': {
+        target: 'https://krishi-kalyan-backend.onrender.com',
+        changeOrigin: true,
+      },
+      '/backend-health': {
+        target: 'https://krishi-kalyan-backend.onrender.com',
+        changeOrigin: true,
+        rewrite: () => '/health',
+      },
+    },
+  },
   build: {
     rollupOptions: {
       input: {

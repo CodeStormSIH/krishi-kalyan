@@ -1,6 +1,6 @@
 # backend/schemas.py
 from pydantic import BaseModel
-from typing import Optional
+from typing import Any, Dict, Optional
 from datetime import datetime
 
 # ==========================================
@@ -288,3 +288,12 @@ class CropAssayResponse(BaseModel):
     status: str
     assigned_auction_bay: str
     message: str
+
+
+class WebStateUpdateRequest(BaseModel):
+    data: Dict[str, Any]
+
+
+class WebStateResponse(BaseModel):
+    data: Optional[Dict[str, Any]] = None
+    updated_at: Optional[datetime] = None

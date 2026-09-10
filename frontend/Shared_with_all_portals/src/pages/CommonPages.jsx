@@ -37,9 +37,9 @@ export function Profile() {
   const getInitialForm = () => {
     let initial = { ...data.profiles[role] };
     if (role === 'farmer' && user) {
-      initial.name = user.full_name || initial.name;
-      initial.email = user.email || initial.email;
-      initial.phone = user.phone_number || initial.phone;
+      initial.name = user?.full_name || initial.name;
+      initial.email = user?.email || initial.email;
+      initial.phone = user?.phone_number || initial.phone;
     }
     return initial;
   };

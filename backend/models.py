@@ -49,6 +49,8 @@ class Booking(Base):
     status = Column(String, default="BOOKED")  # BOOKED, CONFIRMED, GATE_IN, RESCHEDULED, USED, CANCELLED
     transport_mode = Column(String, default="OWN")  # OWN, POOL
     assigned_vehicle = Column(String, nullable=True)
+    driver_name = Column(String, nullable=True)
+    estimated_fare = Column(Float, nullable=True)
     qr_image = Column(Text, nullable=True)  # Base64 string for QR display
     created_at = Column(DateTime, default=datetime.utcnow)
 

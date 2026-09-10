@@ -179,13 +179,9 @@ export function StoreProvider({
     setSession(s);
   };
   const logout = () => {
-    sessionStorage.removeItem('krishi-session');
-    localStorage.removeItem('krishi_user');
-    localStorage.removeItem('krishi_token');
-    localStorage.removeItem('latest_booking');
-    localStorage.removeItem(KEY);
-    setSession(null);
-    setData(read());
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/login';
   };
   const notify = (title, message, category = 'Updates') => update('notifications', rows => [{
     id: crypto.randomUUID(),

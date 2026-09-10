@@ -56,12 +56,9 @@ export function FarmerProvider({ children }) {
   };
 
   const logoutUser = () => {
-    localStorage.removeItem('krishi_user');
-    localStorage.removeItem('krishi_token');
-    localStorage.removeItem('latest_booking');
-    localStorage.removeItem('krishi-kalyan-v1');
-    setUser(null);
-    setActiveBooking(null);
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace('/login');
   };
 
   const updateBookingState = (newBooking) => {

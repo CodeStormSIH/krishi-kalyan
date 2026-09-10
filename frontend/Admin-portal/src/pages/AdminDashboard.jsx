@@ -9,6 +9,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [poolVehicle, setPoolVehicle] = useState('');
   const [assigning, setAssigning] = useState(false);
+  const [selectedMandi, setSelectedMandi] = useState('ALL');
 
   useEffect(() => {
     fetchBookings();
@@ -25,21 +26,6 @@ export default function AdminDashboard() {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateStatus = async (tokenId, newStatus) => {
-    try {
-      const res = await fetch(`http://localhost:8000/api/v1/bookings/${tokenId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (res.ok) {
-        fetchBookings();
-      }
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -87,13 +73,41 @@ export default function AdminDashboard() {
   };
 
   const pendingPool = bookings.filter(b => b.status === 'PENDING_POOL');
+  const filteredBookings = selectedMandi === 'ALL' ? bookings : bookings.filter(b => b.intended_mandi_id === selectedMandi);
+
+  const totalQuantity = filteredBookings.reduce((sum, b) => sum + (b.quantity || 0), 0);
+  const activeTokens = filteredBookings.filter(b => !['COMPLETED', 'CANCELLED'].includes(b.status)).length;
 
   return (
     <div className="page">
-      <h2>Admin Dashboard</h2>
+      <h2>State Admin Dashboard</h2>
       
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px'}}>
+        <Card style={{backgroundColor: '#eff6ff', borderColor: '#bfdbfe'}}>
+          <p style={{fontSize: '0.875rem', color: '#1e3a8a', fontWeight: '600'}}>Total Quantity</p>
+          <h3 style={{fontSize: '2rem', margin: '5px 0'}}>{totalQuantity} Quintal</h3>
+        </Card>
+        <Card style={{backgroundColor: '#fdf4ff', borderColor: '#fbcfe8'}}>
+          <p style={{fontSize: '0.875rem', color: '#831843', fontWeight: '600'}}>Active Tokens</p>
+          <h3 style={{fontSize: '2rem', margin: '5px 0'}}>{activeTokens}</h3>
+        </Card>
+        <Card style={{backgroundColor: '#f0fdf4', borderColor: '#bbf7d0'}}>
+          <p style={{fontSize: '0.875rem', color: '#14532d', fontWeight: '600'}}>Capacity Utilization</p>
+          <h3 style={{fontSize: '2rem', margin: '5px 0'}}>76%</h3>
+        </Card>
+      </div>
+
+      <div className="mt-6">
+        <label style={{marginRight: '10px', fontWeight: '600'}}>Filter by Mandi:</label>
+        <select value={selectedMandi} onChange={e => setSelectedMandi(e.target.value)} style={{padding: '8px', borderRadius: '4px', border: '1px solid #ccc'}}>
+          <option value="ALL">All Mandis</option>
+          <option value="MANDI-1">Mandi 1 (Patna)</option>
+          <option value="MANDI-2">Mandi 2 (Gaya)</option>
+        </select>
+      </div>
+
       {pendingPool.length > 0 && (
-        <Card className="mt">
+        <Card className="mt-6">
           <SectionTitle title="Pending Pooling Requests" />
           <table className="data-table">
             <thead>
@@ -102,7 +116,6 @@ export default function AdminDashboard() {
                 <th>Farmer Phone</th>
                 <th>Crop</th>
                 <th>Quantity</th>
-                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -112,22 +125,19 @@ export default function AdminDashboard() {
                   <td>{b.farmer_name}</td>
                   <td>{b.crop}</td>
                   <td>{b.quantity}</td>
-                  <td>
-                    <button className="linkish" style={{color: 'red'}} onClick={() => updateStatus(b.token_id, 'POOL_UNAVAILABLE')}>Mark Unavailable</button>
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="form-grid mt" style={{display: 'flex', gap: '10px', alignItems: 'flex-end'}}>
+          <div className="form-grid mt-4" style={{display: 'flex', gap: '10px', alignItems: 'flex-end'}}>
             <Field label="Assign Tractor / Vehicle Number" value={poolVehicle} onChange={(e) => setPoolVehicle(e.target.value.toUpperCase())} placeholder="BR01AB1234" />
             <Button onClick={handleAssignPool} disabled={!poolVehicle || assigning}>Assign & Dispatch</Button>
           </div>
         </Card>
       )}
 
-      <Card className="mt">
-        <SectionTitle title="All Bookings Pipeline" />
+      <Card className="mt-6">
+        <SectionTitle title="All Bookings Overview" />
         {loading ? <p>Loading...</p> : (
           <table className="data-table">
             <thead>
@@ -142,7 +152,7 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {bookings.map(b => (
+              {filteredBookings.map(b => (
                 <tr key={b.token_id}>
                   <td>{b.token_id}</td>
                   <td>{b.farmer_name}</td>
@@ -151,15 +161,6 @@ export default function AdminDashboard() {
                   <td>{b.transport_mode}</td>
                   <td>{b.assigned_vehicle || b.vehicle_number || (b.transport_mode === 'POOL' ? 'Pending Allocation' : '-')}</td>
                   <td>
-                    {b.status === 'BOOKED' || b.status === 'CONFIRMED' ? (
-                      <button className="linkish" onClick={() => updateStatus(b.token_id, 'GATE_IN')}>Mark Gate-In</button>
-                    ) : b.status === 'GATE_IN' ? (
-                      <button className="linkish" onClick={() => updateStatus(b.token_id, 'QUALITY_APPROVED')}>Approve Quality</button>
-                    ) : b.status === 'QUALITY_APPROVED' ? (
-                      <button className="linkish" onClick={() => updateStatus(b.token_id, 'WEIGHED')}>Record Weight</button>
-                    ) : b.status === 'WEIGHED' ? (
-                      <button className="linkish" onClick={() => updateStatus(b.token_id, 'COMPLETED')}>Complete</button>
-                    ) : null}
                     <button className="linkish" style={{color: 'red', marginLeft: '10px'}} onClick={() => deleteBooking(b.token_id)}>Delete</button>
                   </td>
                 </tr>

@@ -74,6 +74,19 @@ class BookingCreateRequest(BaseModel):
     transit_permit: Optional[str] = None
     intended_mandi_id: Optional[str] = None
     transport_mode: Optional[str] = "OWN"
+    driver_name: Optional[str] = None
+    estimated_fare: Optional[float] = None
+    assigned_vehicle: Optional[str] = None
+
+class BookingDataPayload(BaseModel):
+    token_id: str
+    channel: str
+    slot_time: Optional[datetime] = None
+    qr_image: Optional[str] = None
+    status: str
+    driver_name: Optional[str] = None
+    estimated_fare: Optional[float] = None
+    assigned_vehicle: Optional[str] = None
 
 class BookingResponse(BaseModel):
     status: str
@@ -82,6 +95,7 @@ class BookingResponse(BaseModel):
     message: str
     slot_time: Optional[datetime] = None
     qr_image: Optional[str] = None
+    data: Optional[BookingDataPayload] = None
 
 class GatePassDetailsResponse(BaseModel):
     token_id: str
@@ -269,6 +283,7 @@ class BookingResponse(BaseModel):
     slot_time: Optional[datetime] = None
     qr_image: Optional[str] = None
     pool_id: Optional[str] = None  # <-- Yeh line add karein
+    data: Optional[BookingDataPayload] = None
 
     class Config:
         from_attributes = True

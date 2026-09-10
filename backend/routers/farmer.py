@@ -53,7 +53,7 @@ def get_mandi_traffic(db: Session = Depends(get_db)):
     return result
 
 
-@router.post("/booking/create", response_model=schemas.BookingResponse)
+@router.post("/booking/create", response_model=schemas.BookingResponse, status_code=status.HTTP_201_CREATED)
 def create_booking(req: schemas.BookingCreateRequest, db: Session = Depends(get_db)):
     # Anti-Fraud Rule 1: One Phone = One Active Token
     active_token = db.query(models.Booking).filter(
@@ -100,38 +100,57 @@ def create_booking(req: schemas.BookingCreateRequest, db: Session = Depends(get_
             detail="Requested slot is already full. Please select an alternative time."
         )
 
-    # Single-use Token generate karein
-    new_token_id = "TK-" + str(uuid.uuid4())[:8].upper()
-    qr_image_data = generate_qr_base64(new_token_id)
+    try:
+        # Single-use Token generate karein
+        new_token_id = "TK-" + str(uuid.uuid4())[:8].upper()
+        qr_image_data = generate_qr_base64(new_token_id)
 
-    new_booking = models.Booking(
-        token_id=new_token_id,
-        phone_number=req.phone_number,
-        crop_name=req.crop_name,
-        vehicle_number=req.vehicle_number.upper() if req.vehicle_number else None,
-        vehicle_type=v_type,
-        transit_permit=req.transit_permit,
-        quantity_quintal=req.quantity_quintal,
-        slot_time=clean_time,
-        channel=assigned_channel,
-        status="PENDING_POOL" if req.transport_mode == "POOL" else "CONFIRMED",
-        transport_mode=req.transport_mode,
-        qr_image=qr_image_data,
-        intended_mandi_id=req.intended_mandi_id
-    )
+        new_booking = models.Booking(
+            token_id=new_token_id,
+            phone_number=req.phone_number,
+            crop_name=req.crop_name,
+            vehicle_number=req.vehicle_number.upper() if req.vehicle_number else "PENDING",
+            vehicle_type=v_type if v_type else "PENDING",
+            transit_permit=req.transit_permit,
+            quantity_quintal=req.quantity_quintal,
+            slot_time=clean_time,
+            channel=assigned_channel,
+            status="CONFIRMED" if req.assigned_vehicle else ("PENDING_POOL" if req.transport_mode == "POOL" else "CONFIRMED"),
+            transport_mode=req.transport_mode,
+            assigned_vehicle=req.assigned_vehicle,
+            driver_name=req.driver_name,
+            estimated_fare=req.estimated_fare,
+            qr_image=qr_image_data,
+            intended_mandi_id=req.intended_mandi_id
+        )
 
-    db.add(new_booking)
-    db.commit()
-    db.refresh(new_booking)
+        db.add(new_booking)
+        db.commit()
+        db.refresh(new_booking)
 
-    return schemas.BookingResponse(
-        status="SUCCESS",
-        token_id=new_token_id,
-        channel=assigned_channel,
-        message=msg,
-        slot_time=new_booking.slot_time,
-        qr_image=new_booking.qr_image
-    )
+        data_payload = schemas.BookingDataPayload(
+            token_id=new_token_id,
+            channel=assigned_channel,
+            slot_time=new_booking.slot_time,
+            qr_image=new_booking.qr_image,
+            status=new_booking.status,
+            driver_name=new_booking.driver_name,
+            estimated_fare=new_booking.estimated_fare,
+            assigned_vehicle=new_booking.assigned_vehicle
+        )
+
+        return schemas.BookingResponse(
+            status="SUCCESS",
+            token_id=new_token_id,
+            channel=assigned_channel,
+            message=msg,
+            slot_time=new_booking.slot_time,
+            qr_image=new_booking.qr_image,
+            data=data_payload
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Booking serialization failed: {str(e)}")
 
 
 @router.get("/pass/{token_id}", response_model=schemas.GatePassDetailsResponse)

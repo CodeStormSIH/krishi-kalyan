@@ -1,17 +1,34 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Building2, UsersRound, MapPin, CalendarDays, Bell, ArrowRight, Download, Tractor } from 'lucide-react';
+import { Building2, UsersRound, MapPin, CalendarDays, Bell, ArrowRight, Download, Tractor, Clock } from 'lucide-react';
 import { Card, SectionTitle } from '@shared/components/UI';
 import { Badge, Button, Details, Instructions } from '@shared/components/Shared';
 import { ProcurementProgress, MissingToken } from './FarmerTracking';
 import { useFarmer } from '@shared/context/FarmerContext';
+import { useStore } from '@shared/services/store';
 
 export default function Dashboard() {
   const { activeBooking: token, loading, user } = useFarmer();
+  const { data, getFarmerEstimate, getCenterCrowd } = useStore();
   const [center, setCenter] = useState(null);
 
   if (loading) return <div className="farmer-dashboard">Loading...</div>;
   if (!token) return <MissingToken />;
+
+  const centerName = token?.mandi_name || token?.center || 'Samastipur Center';
+  const estimate = getFarmerEstimate
+    ? getFarmerEstimate(token?.token_id || user?.phone_number, centerName)
+    : {
+        hasToken: true,
+        position: 2,
+        farmersAhead: 1,
+        estimatedWaitMins: 15,
+        congestionLevel: 'GREEN',
+        congestionLabel: 'Low Crowd',
+        activeVehicles: 5,
+        capacityPct: 20,
+        statusMessage: '1 farmer ahead in queue.'
+      };
 
   return (
     <div className="farmer-dashboard">
@@ -42,19 +59,33 @@ export default function Dashboard() {
         </Card>
 
         <Card className="tint-purple">
-          <SectionTitle title="Live Mandi Details" />
+          <SectionTitle title="Center Crowd &amp; Wait Time" />
           <div className="place">
-             <span className="round-icon purple"><Building2 /></span>
+             <span className="round-icon purple"><Clock /></span>
              <div>
-                <b>{token?.mandi_name || 'Assigned Mandi'}</b>
-                <small>{token?.mandi_district || 'District'}</small>
+                <b>{centerName}</b>
+                <small>{estimate.congestionLabel} · {estimate.activeVehicles} in center</small>
              </div>
           </div>
-          <div className="mt" style={{ marginTop: '15px' }}>
-             <small>Live Congestion: </small>
-             <Badge className={token?.mandi_congestion === 'RED' ? 'danger' : token?.mandi_congestion === 'AMBER' ? 'warning' : 'success'}>
-               {token?.mandi_congestion || 'GREEN'}
-             </Badge>
+          <div className="mt" style={{ marginTop: '10px' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Estimated Wait:</span>
+                <strong style={{ fontSize: '1.2rem', color: estimate.congestionLevel === 'RED' ? '#dc2626' : estimate.congestionLevel === 'AMBER' ? '#d97706' : '#16a34a' }}>
+                  ⏱ ~{estimate.estimatedWaitMins} mins
+                </strong>
+             </div>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                <span style={{ color: 'var(--muted)' }}>Queue Position:</span>
+                <Badge className={estimate.position === 1 ? 'success' : 'neutral'}>
+                  {estimate.position ? `#${estimate.position} in line` : 'At Verification Bay'}
+                </Badge>
+             </div>
+             <div style={{ fontSize: '0.75rem', marginTop: '6px', color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{estimate.farmersAhead ? `${estimate.farmersAhead} ahead of you` : 'Next to be called'}</span>
+                <Badge className={estimate.congestionLevel === 'RED' ? 'danger' : estimate.congestionLevel === 'AMBER' ? 'warning' : 'success'}>
+                  {estimate.congestionLevel}
+                </Badge>
+             </div>
           </div>
         </Card>
 

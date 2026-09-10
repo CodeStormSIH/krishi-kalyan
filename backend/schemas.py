@@ -217,6 +217,36 @@ class MandiTrafficResponse(BaseModel):
     congestion_level: str
     estimated_turnaround_time_mins: int
 
+class CenterCrowdResponse(BaseModel):
+    center_id: str
+    center_name: str
+    district: str
+    active_vehicles: int
+    waiting_farmers: int
+    max_capacity: int
+    capacity_percentage: int
+    congestion_level: str  # GREEN, AMBER, RED
+    congestion_label: str  # Low Crowd, Moderate Crowd, Heavy Congestion
+    avg_service_time_mins: int
+    estimated_wait_time_mins: int
+    status_message: str
+
+class FarmerQueueEstimateResponse(BaseModel):
+    token_id: str
+    phone_number: str
+    center_id: Optional[str] = None
+    center_name: str
+    queue_position: int
+    farmers_ahead: int
+    estimated_wait_time_mins: int
+    center_congestion: str
+    center_crowd_label: str
+    active_vehicles: int
+    max_capacity: int
+    capacity_percentage: int
+    status: str
+    status_message: str
+
 # ==========================================
 # 4. TRACTOR POOLING SCHEMAS
 # ==========================================

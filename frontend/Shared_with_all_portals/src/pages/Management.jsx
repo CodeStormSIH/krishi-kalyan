@@ -26,6 +26,7 @@ export function Management({
     patch,
     update,
     advanceQueue,
+    getCenterCrowd,
     notify,
     toast
   } = useStore();
@@ -41,10 +42,30 @@ export function Management({
   if (source === 'tokens' && !admin) rows = rows.filter(r => r.center === data.selectedCenter);
   if (page === 'farmers' && !admin) rows = rows.filter(r => data.tokens.some(t => t.farmerId === r.id && t.center === data.selectedCenter));
   if (source === 'tokens' && date) rows = rows.filter(r => r.date === date);
-  if (page === 'queue' && !admin) rows = rows.filter(r => tab === 'All Tokens' || (tab === 'History' ? ['Completed', 'Cancelled'].includes(r.status) : !['Completed', 'Cancelled'].includes(r.status)));
-  const columns = page === 'farmers' ? [col('name', 'Farmer Name'), col('id', 'Kisan ID'), col('phone', 'Mobile Number'), col('district', 'District'), col('crop', 'Crop'), status, col('registered', 'Registered On')] : page === 'centers' ? [col('id', 'Center Code'), col('name', 'Center Name'), col('district', 'District'), col('manager', 'Manager'), status, col('served', 'Farmers Served')] : page === 'users' ? [col('name', 'Name'), col('email', 'Email'), col('role', 'Role'), col('center', 'Center'), status, col('lastLogin', 'Last Login')] : page === 'alerts' ? [col('title', 'Alert Type'), col('center', 'Center'), col('severity', 'Priority', v => <Badge>{v}</Badge>), col('date', 'Detected On'), status] : page === 'payments' ? [col('id', 'Payment / Token ID', v => `PAY-${v}`), col('name', 'Farmer'), col('center', 'Center'), col('quantity', 'Amount', (_, r) => money(r.quantity * r.rate)), col('payment', 'Payment Status', v => <Badge>{v}</Badge>), col('date', 'Payment Date')] : page === 'procurement' ? [col('id', 'Token No.'), col('name', 'Farmer'), col('center', 'Center'), col('crop', 'Crop'), col('quantity', 'Quantity (Qtl)'), col('stage', 'Stage', v => <Badge>{stages[v]}</Badge>), col('date', 'Updated On')] : [col('position', 'Position', (_, r) => rows.findIndex(t => t.id === r.id) + 1), col('id', 'Token No.'), col('name', 'Farmer'), col('center', 'Center'), col('crop', 'Crop'), col('date', 'Date'), col('slot', 'Time Slot'), status];
+  if (page === 'queue' && !admin) rows = rows.filter(r => tab === 'All Tokens' || (tab === 'History' ? ['Completed', 'Cancelled', 'USED'].includes(r.status) : !['Completed', 'Cancelled', 'USED'].includes(r.status)));
+  const columns = page === 'farmers' ? [col('name', 'Farmer Name'), col('id', 'Kisan ID'), col('phone', 'Mobile Number'), col('district', 'District'), col('crop', 'Crop'), status, col('registered', 'Registered On')] : page === 'centers' ? [col('id', 'Center Code'), col('name', 'Center Name'), col('district', 'District'), col('manager', 'Manager'), status, col('served', 'Farmers Served')] : page === 'users' ? [col('name', 'Name'), col('email', 'Email'), col('role', 'Role'), col('center', 'Center'), status, col('lastLogin', 'Last Login')] : page === 'alerts' ? [col('title', 'Alert Type'), col('center', 'Center'), col('severity', 'Priority', v => <Badge>{v}</Badge>), col('date', 'Detected On'), status] : page === 'payments' ? [col('id', 'Payment / Token ID', v => `PAY-${v}`), col('name', 'Farmer'), col('center', 'Center'), col('quantity', 'Amount', (_, r) => money(r.quantity * r.rate)), col('payment', 'Payment Status', v => <Badge>{v}</Badge>), col('date', 'Payment Date')] : page === 'procurement' ? [col('id', 'Token No.'), col('name', 'Farmer'), col('center', 'Center'), col('crop', 'Crop'), col('quantity', 'Quantity (Qtl)'), col('stage', 'Stage', v => <Badge>{stages[v]}</Badge>), col('date', 'Updated On')] : [col('position', 'Position', (_, r) => {
+    const idx = rows.findIndex(t => t.id === r.id);
+    return idx >= 0 ? <Badge>{idx + 1}</Badge> : '—';
+  }), col('id', 'Token No.'), col('name', 'Farmer'), col('center', 'Center'), col('crop', 'Crop'), col('date', 'Date'), col('slot', 'Time Slot'), col('wait', 'Est. Wait', (_, r) => {
+    const waitingRows = rows.filter(t => ['In Queue', 'Checked In', 'BOOKED', 'CONFIRMED'].includes(t.status));
+    const wIdx = waitingRows.findIndex(t => t.id === r.id);
+    if (wIdx < 0) return r.status === 'In Process' ? <Badge className="success">Processing</Badge> : 'Completed';
+    if (wIdx === 0) return <strong style={{ color: '#16a34a' }}>Next (0 min)</strong>;
+    return <span className="muted">~{wIdx * 5} min</span>;
+  }), status];
   const groups = page === 'farmers' ? filters('status', 'district', 'crop') : page === 'centers' ? filters('status', 'district') : page === 'users' ? filters('role', 'status') : page === 'alerts' ? filters('severity', 'status', 'center') : page === 'payments' ? filters('payment', 'center') : filters('center', 'crop', 'status');
-  const totals = page === 'farmers' || page === 'centers' || page === 'users' ? [[`Total ${page}`, rows.length, UsersRound], ['Active', rows.filter(r => r.status === 'Active').length, CheckCircle2], ['Inactive', rows.filter(r => r.status === 'Inactive').length, TriangleAlert], ['New This Month', Math.min(4, rows.length), Plus]] : page === 'payments' ? [['Total Payments', money(rows.reduce((s, r) => s + r.quantity * r.rate, 0)), WalletCards], ['Paid', money(rows.filter(r => r.payment === 'Paid').reduce((s, r) => s + r.quantity * r.rate, 0)), CheckCircle2], ['In Process', money(rows.filter(r => r.payment === 'In Process').reduce((s, r) => s + r.quantity * r.rate, 0)), Clock], ['Pending / Failed', rows.filter(r => ['Pending', 'Failed'].includes(r.payment)).length, TriangleAlert]] : page === 'alerts' ? [['Total Alerts', rows.length, TriangleAlert], ['High Priority', rows.filter(r => r.severity === 'High').length, TriangleAlert], ['Investigating', rows.filter(r => r.status === 'Investigating').length, Clock], ['Resolved', rows.filter(r => r.status === 'Resolved').length, CheckCircle2]] : [['Total Tokens', rows.length, Ticket], ['In Queue', rows.filter(r => r.status === 'In Queue').length, UsersRound], ['Under Procurement', rows.filter(r => r.stage > 0 && r.stage < 5).length, Wheat], ['Completed', rows.filter(r => r.status === 'Completed').length, CheckCircle2]];
+  const totals = page === 'farmers' || page === 'centers' || page === 'users' ? [[`Total ${page}`, rows.length, UsersRound], ['Active', rows.filter(r => r.status === 'Active').length, CheckCircle2], ['Inactive', rows.filter(r => r.status === 'Inactive').length, TriangleAlert], ['New This Month', Math.min(4, rows.length), Plus]] : page === 'payments' ? [['Total Payments', money(rows.reduce((s, r) => s + r.quantity * r.rate, 0)), WalletCards], ['Paid', money(rows.filter(r => r.payment === 'Paid').reduce((s, r) => s + r.quantity * r.rate, 0)), CheckCircle2], ['In Process', money(rows.filter(r => r.payment === 'In Process').reduce((s, r) => s + r.quantity * r.rate, 0)), Clock], ['Pending / Failed', rows.filter(r => ['Pending', 'Failed'].includes(r.payment)).length, TriangleAlert]] : page === 'alerts' ? [['Total Alerts', rows.length, TriangleAlert], ['High Priority', rows.filter(r => r.severity === 'High').length, TriangleAlert], ['Investigating', rows.filter(r => r.status === 'Investigating').length, Clock], ['Resolved', rows.filter(r => r.status === 'Resolved').length, CheckCircle2]] : [['Total Tokens', rows.length, Ticket], ['In Queue', rows.filter(r => ['In Queue', 'Checked In', 'BOOKED', 'CONFIRMED'].includes(r.status)).length, UsersRound], ['Under Procurement', rows.filter(r => (r.stage > 0 && r.stage < 5) || r.status === 'In Process').length, Wheat], ['Completed', rows.filter(r => r.status === 'Completed' || r.status === 'USED' || r.stage === 5).length, CheckCircle2]];
+  
+  const crowd = getCenterCrowd ? getCenterCrowd(data.selectedCenter) : {
+    waitingCount: rows.filter(r => ['In Queue', 'Checked In', 'BOOKED', 'CONFIRMED'].includes(r.status)).length,
+    congestionLevel: 'GREEN',
+    congestionLabel: 'Low Crowd',
+    estimatedWaitMins: rows.filter(r => ['In Queue', 'Checked In', 'BOOKED', 'CONFIRMED'].includes(r.status)).length * 5,
+    activeVehicles: rows.filter(r => r.status !== 'Completed').length,
+    maxCapacity: 50,
+    capacityPct: 20,
+    statusMessage: 'Smooth flow · Minimal waiting'
+  };
   function save(e) {
     e.preventDefault();
     const form = Object.fromEntries(new FormData(e.currentTarget));
@@ -75,10 +96,68 @@ export function Management({
     setEdit(null);
   }
   const selected = detail && data[source].find(r => r.id === detail.id);
-  return <><Stats items={totals} /><div className="mt">{page === 'queue' && !admin && <div className="row-between"><Tabs items={['Current Queue', 'All Tokens', 'History']} value={tab} onChange={setTab} /><div className="button-row"><Button secondary onClick={() => {
-            advanceQueue();
-            toast('Next waiting farmer called for verification.');
-          }}>Call Next</Button><Button secondary onClick={() => toast(`Queue refreshed at ${new Date().toLocaleTimeString()}`)}>Refresh Queue</Button></div></div>}{page === 'users' && <Tabs items={['Users', 'Roles', 'Permissions']} value={tab} onChange={setTab} />} {page === 'users' && tab !== 'Users' ? <Card><SectionTitle title={tab === 'Roles' ? 'Role Responsibilities' : 'Role Permissions'} />{Object.entries(data.permissions).map(([role, permissions]) => <div className="role-permissions" key={role}><h3><ShieldCheck size={18} /> {role}</h3>{tab === 'Roles' ? <p>{permissions.join(' · ')}</p> : ['View reports', 'Manage farmers', 'Manage centers', 'Manage queue', 'Update procurement', 'Manage tickets'].map(p => <label className="check-field" key={p}><input type="checkbox" checked={permissions.includes(p)} onChange={e => {
+  return <><Stats items={totals} /><div className="mt">{page === 'queue' && !admin && (
+    <>
+      <Card className="mt" style={{
+        marginBottom: '1rem',
+        borderLeft: `5px solid ${crowd.congestionLevel === 'RED' ? '#ef4444' : crowd.congestionLevel === 'AMBER' ? '#f59e0b' : '#22c55e'}`,
+        padding: '1rem 1.25rem'
+      }}>
+        <div className="row-between" style={{ flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem' }}>{data.selectedCenter} · Live Center Crowd &amp; Wait Time</h3>
+              <Badge className={crowd.congestionLevel === 'RED' ? 'danger' : crowd.congestionLevel === 'AMBER' ? 'warning' : 'success'}>
+                ● {crowd.congestionLabel} ({crowd.capacityPct}% Capacity)
+              </Badge>
+            </div>
+            <p className="muted" style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem' }}>
+              {crowd.statusMessage} · <strong>{crowd.waitingCount}</strong> farmers in queue · <strong>{crowd.activeVehicles} / {crowd.maxCapacity}</strong> vehicles present
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <div style={{ textAlign: 'right' }}>
+              <small className="muted" style={{ display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Farmer Queue Wait</small>
+              <strong style={{ fontSize: '1.25rem', color: crowd.congestionLevel === 'RED' ? '#dc2626' : crowd.congestionLevel === 'AMBER' ? '#d97706' : '#16a34a' }}>
+                ⏱ ~{crowd.estimatedWaitMins} mins
+              </strong>
+            </div>
+            <Button secondary onClick={() => {
+              const newId = `TK-${Math.floor(2400 + Math.random() * 900)}`;
+              const mockNames = ['Vikram Sahni', 'Sunil Soren', 'Arun Paswan', 'Gopal Mandal', 'Birendra Roy'];
+              const randomName = mockNames[Math.floor(Math.random() * mockNames.length)];
+              const newTok = {
+                id: newId,
+                farmerId: `KRN${Math.floor(100000 + Math.random() * 900000)}`,
+                name: randomName,
+                phone: `98${Math.floor(10000000 + Math.random() * 90000000)}`,
+                center: data.selectedCenter,
+                crop: 'Wheat',
+                quantity: Math.floor(25 + Math.random() * 35),
+                rate: 2275,
+                date: dateISO(),
+                slot: '10:30 AM - 11:30 AM',
+                status: 'In Queue',
+                stage: 1,
+                payment: 'Pending',
+                vehicleNumber: `BR-33-${String.fromCharCode(65 + Math.floor(Math.random() * 26))}-${Math.floor(1000 + Math.random() * 9000)}`,
+                vehicleType: 'Tractor Trolley'
+              };
+              update('tokens', ts => [newTok, ...ts]);
+              toast(`Walk-in farmer ${randomName} (${newId}) added to queue.`);
+            }}>
+              <Plus size={15} /> Add Walk-in
+            </Button>
+          </div>
+        </div>
+      </Card>
+      <div className="row-between"><Tabs items={['Current Queue', 'All Tokens', 'History']} value={tab} onChange={setTab} /><div className="button-row"><Button secondary onClick={() => {
+                advanceQueue();
+                toast('Next waiting farmer called for verification.');
+              }}>Call Next</Button><Button secondary onClick={() => toast(`Queue refreshed at ${new Date().toLocaleTimeString()}`)}>Refresh Queue</Button></div></div>
+    </>
+  )}{page === 'users' && <Tabs items={['Users', 'Roles', 'Permissions']} value={tab} onChange={setTab} />} {page === 'users' && tab !== 'Users' ? <Card><SectionTitle title={tab === 'Roles' ? 'Role Responsibilities' : 'Role Permissions'} />{Object.entries(data.permissions).map(([role, permissions]) => <div className="role-permissions" key={role}><h3><ShieldCheck size={18} /> {role}</h3>{tab === 'Roles' ? <p>{permissions.join(' · ')}</p> : ['View reports', 'Manage farmers', 'Manage centers', 'Manage queue', 'Update procurement', 'Manage tickets'].map(p => <label className="check-field" key={p}><input type="checkbox" checked={permissions.includes(p)} onChange={e => {
               update('permissions', r => ({
                 ...r,
                 [role]: e.target.checked ? [...r[role], p] : r[role].filter(x => x !== p)

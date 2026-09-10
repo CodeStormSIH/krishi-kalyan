@@ -62,7 +62,7 @@ export default function Login({ initialRole = 'farmer' }) {
     let realSmsDelivered = false;
 
     try {
-      const response = await api.sendOtp(cleanedPhone, { timeout: 4000 });
+      const response = await api.sendOtp(cleanedPhone, { timeout: 8000 });
       if (response && response.delivery_method === 'SMS') {
         realSmsDelivered = true;
       }
@@ -152,7 +152,7 @@ export default function Login({ initialRole = 'farmer' }) {
     let finalOtp = demoOtp;
     let realSmsDelivered = false;
     try {
-      const response = await api.sendOtp(credentials.phone, { timeout: 4000 });
+      const response = await api.sendOtp(credentials.phone, { timeout: 8000 });
       if (response && response.delivery_method === 'SMS') {
         realSmsDelivered = true;
       }

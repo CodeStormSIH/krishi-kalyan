@@ -103,7 +103,7 @@ export default function Layout() {
               <Bell size={19} />{unread > 0 && <span>{unread}</span>}
             </NavLink>
             {role === 'farmer' ? (
-              <button className="logout-top icon-btn" style={{ fontSize: '0.9rem', width: 'auto', padding: '0 10px' }} onClick={() => { localStorage.clear(); window.location.href = '/login'; }}>
+              <button className="logout-top icon-btn" style={{ fontSize: '0.9rem', width: 'auto', padding: '0 10px' }} onClick={() => { localStorage.clear(); sessionStorage.clear(); window.location.href = '/login'; }}>
                 <LogOut size={17} /> Logout
               </button>
             ) : (

@@ -39,7 +39,6 @@ export default function Login({ initialRole = 'farmer' }) {
   }, [step, resendIn]);
 
   const validRoles = ['farmer', 'admin', 'operator'];
-  if (session && validRoles.includes(session?.role)) return <Navigate to={`/${session.role}/dashboard`} replace />;
 
   const field = name => ({
     value: credentials[name],
@@ -185,6 +184,30 @@ export default function Login({ initialRole = 'farmer' }) {
               : `Code sent to ${maskPhone(credentials.phone)}`}</p>
           </div>
         </div>
+
+        {session && validRoles.includes(session?.role?.toLowerCase()) && (
+          <div style={{
+            marginBottom: '1rem',
+            padding: '10px 14px',
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '0.82rem'
+          }}>
+            <span>Logged in as <b>{session.name || session.phone || session.role}</b> ({session.role})</span>
+            <button
+              type="button"
+              className="linkish"
+              onClick={() => navigate(`/${session.role.toLowerCase()}/dashboard`)}
+              style={{ fontWeight: 600, color: '#16a34a', textDecoration: 'underline' }}
+            >
+              Resume session →
+            </button>
+          </div>
+        )}
 
         <ol className="login-steps" aria-label="Login progress">
           <li className="is-active"><span>{step === 'otp' ? <CheckCircle2 size={15} /> : '1'}</span>Account details</li>

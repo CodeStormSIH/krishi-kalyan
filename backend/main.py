@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import models
 from database import engine, get_db
 from fastapi import Depends
-from routers import farmer, gate, admin, weighbridge, assaying, auth, web_state
+from routers import farmer, gate, admin, weighbridge, assaying, auth, web_state, bookings
 
 # Supabase tables check/create
 models.Base.metadata.create_all(bind=engine)
@@ -37,6 +37,7 @@ app.include_router(weighbridge.router)
 app.include_router(assaying.router)
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(web_state.router)
+app.include_router(bookings.router)
 
 @app.get("/health")
 def health_check(db: Session = Depends(get_db)):

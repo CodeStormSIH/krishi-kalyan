@@ -34,9 +34,9 @@ export function FarmerProvider({ children }) {
     try {
       if (api.getActiveBooking) {
         const res = await api.getActiveBooking(phone);
-        if (res?.data) {
-          setActiveBooking(res.data);
-          localStorage.setItem('latest_booking', JSON.stringify(res.data));
+        if (res?.token_id) {
+          setActiveBooking(res);
+          localStorage.setItem('latest_booking', JSON.stringify(res));
         } else {
           setActiveBooking(null);
           localStorage.removeItem('latest_booking');

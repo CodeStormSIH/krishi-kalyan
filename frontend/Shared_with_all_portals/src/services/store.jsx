@@ -60,7 +60,11 @@ export function StoreProvider({
     [connection, setConnection] = useState({ status: 'checking', message: 'Checking backend…' }),
     [backendReady, setBackendReady] = useState(false);
   useEffect(() => {
-    Promise.all([backendApi.health(), backendApi.farmer.mandiTraffic(), backendApi.web.getState()])
+    Promise.all([
+      backendApi.health().catch(() => null),
+      backendApi.farmer.mandiTraffic().catch(() => []),
+      backendApi.web.getState().catch(() => null)
+    ])
       .then(([health, mandis, saved]) => {
         const databaseConnected = health?.services?.database === 'connected' || health?.status === 'healthy';
         setConnection({
@@ -101,7 +105,11 @@ export function StoreProvider({
   useEffect(() => {
     if (!backendReady) return;
     const timer = window.setTimeout(() => {
-      backendApi.web.saveState(data).catch(error => setToast(error.message));
+      backendApi.web.saveState(data).catch(error => {
+        if (error?.status !== 404) {
+          setToast(error.message);
+        }
+      });
     }, 500);
     return () => window.clearTimeout(timer);
   }, [data, backendReady]);
@@ -221,7 +229,7 @@ export function StoreProvider({
     advanceQueue,
     connection,
     toast: setToast
-  }}>{children}{toast && <div className="toast" role="status">✓ {toast}<button aria-label="Dismiss message" onClick={() => setToast('')}>×</button></div>}</Context.Provider>;
+  }}>{children}{toast && <div className="toast" style={toast.startsWith('Error:') ? {backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #f87171'} : {}} role="status">{toast.startsWith('Error:') ? '⚠' : '✓'} {toast.replace('Error: ', '')}<button aria-label="Dismiss message" onClick={() => setToast('')}>×</button></div>}</Context.Provider>;
 }
 export const useStore = () => useContext(Context);
 export function canReadNotification(n, role) {

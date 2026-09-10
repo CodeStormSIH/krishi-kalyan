@@ -34,7 +34,8 @@ export default function Login({ initialRole = 'farmer' }) {
     return () => window.clearTimeout(timer);
   }, [step, resendIn]);
 
-  if (session) return <Navigate to={`/${session.role}/dashboard`} replace />;
+  const validRoles = ['farmer', 'admin', 'operator'];
+  if (session && validRoles.includes(session?.role)) return <Navigate to={`/${session.role}/dashboard`} replace />;
 
   const field = name => ({
     value: credentials[name],

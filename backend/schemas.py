@@ -36,8 +36,10 @@ class ActiveBookingResponse(BaseModel):
     channel: str
     crop_name: str
     quantity_quintal: float
-    vehicle_number: str
-    vehicle_type: str
+    vehicle_number: Optional[str] = None
+    vehicle_type: Optional[str] = None
+    transport_mode: Optional[str] = None
+    assigned_vehicle: Optional[str] = None
     slot_time: Optional[datetime] = None
     qr_image: Optional[str] = None
     intended_mandi_id: Optional[str] = None
@@ -65,12 +67,13 @@ class ActiveBookingResponse(BaseModel):
 class BookingCreateRequest(BaseModel):
     phone_number: str
     crop_name: str
-    vehicle_number: str
-    vehicle_type: str
+    vehicle_number: Optional[str] = None
+    vehicle_type: Optional[str] = None
     quantity_quintal: float
     slot_time: datetime
     transit_permit: Optional[str] = None
     intended_mandi_id: Optional[str] = None
+    transport_mode: Optional[str] = "OWN"
 
 class BookingResponse(BaseModel):
     status: str
@@ -297,3 +300,12 @@ class WebStateUpdateRequest(BaseModel):
 class WebStateResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     updated_at: Optional[datetime] = None
+
+class AssignPoolRequest(BaseModel):
+    token_ids: List[str]
+    vehicle_number: str
+
+class StatusUpdateRequest(BaseModel):
+    status: str
+    transport_mode: Optional[str] = None
+    vehicle_number: Optional[str] = None

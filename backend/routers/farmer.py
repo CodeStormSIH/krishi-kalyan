@@ -68,7 +68,7 @@ def create_booking(req: schemas.BookingCreateRequest, db: Session = Depends(get_
         )
 
     # Anti-Fraud Rule 2: Commercial Truck ke liye Transit Permit zaroori hai
-    v_type = req.vehicle_type.upper()
+    v_type = req.vehicle_type.upper() if req.vehicle_type else None
     if v_type == "COMMERCIAL_TRUCK" and not req.transit_permit:
         raise HTTPException(
             status_code=403,
@@ -108,13 +108,14 @@ def create_booking(req: schemas.BookingCreateRequest, db: Session = Depends(get_
         token_id=new_token_id,
         phone_number=req.phone_number,
         crop_name=req.crop_name,
-        vehicle_number=req.vehicle_number.upper(),
+        vehicle_number=req.vehicle_number.upper() if req.vehicle_number else None,
         vehicle_type=v_type,
         transit_permit=req.transit_permit,
         quantity_quintal=req.quantity_quintal,
         slot_time=clean_time,
         channel=assigned_channel,
-        status="CONFIRMED",
+        status="PENDING_POOL" if req.transport_mode == "POOL" else "CONFIRMED",
+        transport_mode=req.transport_mode,
         qr_image=qr_image_data,
         intended_mandi_id=req.intended_mandi_id
     )
@@ -332,7 +333,7 @@ def get_pool_manifest(pool_id: str, db: Session = Depends(get_db)):
 def get_my_active_booking(phone_number: str, db: Session = Depends(get_db)):
     booking = db.query(models.Booking).filter(
         models.Booking.phone_number == phone_number,
-        models.Booking.status.not_in(["CANCELLED", "COMPLETED", "USED"])
+        models.Booking.status.in_(["BOOKED", "CONFIRMED", "PENDING_POOL", "POOL_UNAVAILABLE", "GATE_IN", "QUALITY_APPROVED", "WEIGHED"])
     ).order_by(models.Booking.created_at.desc()).first()
 
     if not booking:
@@ -376,5 +377,7 @@ def get_my_active_booking(phone_number: str, db: Session = Depends(get_db)):
         is_pool_master=booking.is_pool_master,
         mandi_name=mandi_name,
         mandi_district=mandi_district,
-        mandi_congestion=mandi_congestion
+        mandi_congestion=mandi_congestion,
+        transport_mode=booking.transport_mode,
+        assigned_vehicle=booking.assigned_vehicle
     )

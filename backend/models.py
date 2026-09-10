@@ -40,13 +40,15 @@ class Booking(Base):
     token_id = Column(String, unique=True, index=True, nullable=False)
     phone_number = Column(String, index=True, nullable=False)
     crop_name = Column(String, nullable=False, default="Wheat")
-    vehicle_number = Column(String, nullable=False)
-    vehicle_type = Column(String, nullable=False)
+    vehicle_number = Column(String, nullable=True)
+    vehicle_type = Column(String, nullable=True)
     transit_permit = Column(String, nullable=True)
     quantity_quintal = Column(Float, nullable=False)
     slot_time = Column(DateTime, nullable=False)
     channel = Column(String, nullable=False)  # GREEN or AMBER
-    status = Column(String, default="CONFIRMED")  # CONFIRMED, GATE_IN, RESCHEDULED, USED, CANCELLED
+    status = Column(String, default="BOOKED")  # BOOKED, CONFIRMED, GATE_IN, RESCHEDULED, USED, CANCELLED
+    transport_mode = Column(String, default="OWN")  # OWN, POOL
+    assigned_vehicle = Column(String, nullable=True)
     qr_image = Column(Text, nullable=True)  # Base64 string for QR display
     created_at = Column(DateTime, default=datetime.utcnow)
 

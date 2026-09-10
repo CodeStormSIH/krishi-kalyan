@@ -15,14 +15,15 @@ const portals = [
 
 function Guard({ role }) {
   const { session } = useStore();
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session || !session.role) return <Navigate to="/login" replace />;
   if (session.role !== role) return <Navigate to={`/${session.role}/dashboard`} replace />;
   return <Layout />;
 }
 
 function Home() {
   const { session } = useStore();
-  return <Navigate to={session ? `/${session.role}/dashboard` : '/login'} replace />;
+  const validRoles = ['farmer', 'admin', 'operator'];
+  return <Navigate to={session && validRoles.includes(session?.role) ? `/${session.role}/dashboard` : '/login'} replace />;
 }
 
 export default function App({ initialRole }) {

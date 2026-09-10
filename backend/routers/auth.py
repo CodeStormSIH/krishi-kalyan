@@ -14,14 +14,36 @@ router = APIRouter()
 
 def dispatch_real_sms(phone_number: str, otp_code: str) -> tuple[bool, str]:
     """
-    Attempts to dispatch real SMS via configured SMS gateways in order of preference:
-    1. Fast2SMS (Best for Indian numbers - requires FAST2SMS_API_KEY)
-    2. Twilio (Global - requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER)
-    3. 2Factor.in (Indian numbers - requires TWOFACTOR_API_KEY)
+    Attempts to dispatch real SMS via configured SMS gateways:
+    1. Twilio Verify API (Dedicated OTP SMS service - reliable globally)
+    2. Fast2SMS (Indian numbers)
+    3. Twilio Messages API
+    4. 2Factor.in
     """
-    cleaned_10 = "".join(filter(str.isdigit, phone_number))[-10:]
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"), override=True)
 
-    # 1. Try Fast2SMS
+    cleaned_10 = "".join(filter(str.isdigit, phone_number))[-10:]
+    to_num = phone_number if phone_number.startswith("+") else f"+91{cleaned_10}"
+
+    # 1. Try Twilio Verify API (Best & dedicated OTP service)
+    twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+    verify_service_sid = os.getenv("TWILIO_VERIFY_SERVICE_SID")
+    if twilio_sid and twilio_token and verify_service_sid:
+        try:
+            url = f"https://verify.twilio.com/v2/Services/{verify_service_sid}/Verifications"
+            res = requests.post(url, data={"To": to_num, "Channel": "sms"}, auth=(twilio_sid, twilio_token), timeout=8)
+            res_json = res.json()
+            if res.status_code in [200, 201] and res_json.get("status") == "pending":
+                print(f"[TWILIO VERIFY SUCCESS] Real SMS OTP dispatched to {to_num}")
+                return True, "Twilio Verify"
+            else:
+                print(f"[TWILIO VERIFY RESPONSE] status={res.status_code}, data={res_json}")
+        except Exception as e:
+            print(f"[TWILIO VERIFY ERROR] {e}")
+
+    # 2. Try Fast2SMS
     fast2sms_key = os.getenv("FAST2SMS_API_KEY")
     if fast2sms_key:
         try:
@@ -45,13 +67,10 @@ def dispatch_real_sms(phone_number: str, otp_code: str) -> tuple[bool, str]:
         except Exception as e:
             print(f"[FAST2SMS ERROR] {e}")
 
-    # 2. Try Twilio
-    twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
-    twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+    # 3. Try Twilio Messages API
     twilio_from = os.getenv("TWILIO_PHONE_NUMBER")
     if twilio_sid and twilio_token and twilio_from:
         try:
-            to_num = phone_number if phone_number.startswith("+") else f"+91{cleaned_10}"
             url = f"https://api.twilio.com/2010-04-01/Accounts/{twilio_sid}/Messages.json"
             payload = {
                 "From": twilio_from,
@@ -67,7 +86,7 @@ def dispatch_real_sms(phone_number: str, otp_code: str) -> tuple[bool, str]:
         except Exception as e:
             print(f"[TWILIO ERROR] {e}")
 
-    # 3. Try 2Factor.in
+    # 4. Try 2Factor.in
     twofactor_key = os.getenv("TWOFACTOR_API_KEY")
     if twofactor_key:
         try:
@@ -118,22 +137,45 @@ def send_otp(request: schemas.SendOtpRequest, db: Session = Depends(get_db)):
 
 @router.post("/verify-otp", response_model=schemas.AuthResponse)
 def verify_otp(request: schemas.VerifyOtpRequest, db: Session = Depends(get_db)):
-    otp_session = db.query(models.OtpSession).filter(
-        models.OtpSession.phone_number == request.phone_number,
-        models.OtpSession.is_verified == False
-    ).order_by(models.OtpSession.id.desc()).first()
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"), override=True)
 
-    if not otp_session:
-        raise HTTPException(status_code=400, detail="Invalid session or OTP already verified")
-    
-    if otp_session.otp_code != request.otp_code:
-        raise HTTPException(status_code=400, detail="Invalid OTP")
-    
-    if otp_session.expires_at < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="OTP expired")
-    
-    otp_session.is_verified = True
-    db.commit()
+    twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+    verify_service_sid = os.getenv("TWILIO_VERIFY_SERVICE_SID")
+    twilio_approved = False
+
+    cleaned_10 = "".join(filter(str.isdigit, request.phone_number))[-10:]
+    to_num = request.phone_number if request.phone_number.startswith("+") else f"+91{cleaned_10}"
+
+    if twilio_sid and twilio_token and verify_service_sid:
+        try:
+            check_url = f"https://verify.twilio.com/v2/Services/{verify_service_sid}/VerificationCheck"
+            check_res = requests.post(check_url, data={"To": to_num, "Code": request.otp_code}, auth=(twilio_sid, twilio_token), timeout=8)
+            check_data = check_res.json()
+            if check_res.status_code == 200 and check_data.get("status") == "approved":
+                twilio_approved = True
+                print(f"[TWILIO VERIFY APPROVED] for {to_num}")
+        except Exception as e:
+            print(f"[TWILIO CHECK ERROR] {e}")
+
+    if not twilio_approved:
+        otp_session = db.query(models.OtpSession).filter(
+            models.OtpSession.phone_number == request.phone_number,
+            models.OtpSession.is_verified == False
+        ).order_by(models.OtpSession.id.desc()).first()
+
+        if not otp_session:
+            raise HTTPException(status_code=400, detail="Invalid session or OTP already verified")
+        
+        if otp_session.otp_code != request.otp_code:
+            raise HTTPException(status_code=400, detail="Invalid OTP")
+        
+        if otp_session.expires_at < datetime.utcnow():
+            raise HTTPException(status_code=400, detail="OTP expired")
+        
+        otp_session.is_verified = True
+        db.commit()
 
     user = db.query(models.User).filter(models.User.phone_number == request.phone_number).first()
     

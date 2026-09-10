@@ -1,7 +1,7 @@
 const configuredBaseUrl = (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_API_BASE_URL || '').trim();
 const baseUrl = configuredBaseUrl.replace(/\/$/, '');
 
-const BASE_URL = baseUrl || 'http://localhost:8000/api/v1';
+const BASE_URL = baseUrl || (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8000/api/v1' : 'http://localhost:8000/api/v1');
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('krishi_token');

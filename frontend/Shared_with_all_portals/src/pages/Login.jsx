@@ -190,7 +190,7 @@ export default function Login({ initialRole = 'farmer' }) {
         <h1>Krishi Kalyan</h1>
         <span>ONE PLATFORM. EVERY HARVEST.</span>
         <h2>A secure step<br />before your portal.</h2>
-        <p>Choose the correct role, confirm your contact details, and verify the simulated OTP to continue.</p>
+        <p>Choose the correct role, confirm your contact details, and verify the SMS OTP to continue.</p>
         <div className="login-features">
           <span>✓ Role-based access</span><span>✓ Mobile verification</span><span>✓ Email Verification</span>
         </div>
@@ -294,7 +294,7 @@ export default function Login({ initialRole = 'farmer' }) {
               <Smartphone size={17} />
               {loading ? 'Sending OTP…' : 'Send OTP'}
             </Button>
-            <p className="login-privacy">Frontend demo only. No email, phone number, or OTP is sent to an external service.</p>
+            <p className="login-privacy">Frontend demo only. A 6-digit verification code is delivered directly to your mobile via SMS.</p>
           </form>
         ) : (
           <form onSubmit={verifyOtp}>

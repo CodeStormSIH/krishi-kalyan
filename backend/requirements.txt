@@ -18,3 +18,5 @@ python-dotenv
 psycopg2-binary
 Pillow
 requests
+
+qrcode==8.2

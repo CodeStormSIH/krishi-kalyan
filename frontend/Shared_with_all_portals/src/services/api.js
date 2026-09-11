@@ -28,7 +28,9 @@ async function request(endpoint, options = {}) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `API request failed with status ${response.status}`);
+      const error = new Error(errorData.detail || `API request failed with status ${response.status}`);
+      error.code = typeof errorData.detail?.code === 'string' ? errorData.detail.code : undefined;
+      throw error;
     }
 
     return await response.json();
@@ -38,6 +40,7 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  portalAuth: (operation, payload) => request(`/auth/portal/${operation}`, { method: 'POST', body: JSON.stringify(payload), timeout: 30000 }),
   sendOtp: (phoneNumber, options = {}) => request('/auth/send-otp', { method: 'POST', body: JSON.stringify({ phone_number: phoneNumber }), ...options }),
   verifyOtp: (payload, options = {}) => request('/auth/verify-otp', { method: 'POST', body: JSON.stringify(payload), ...options }),
   getCurrentUser: (options = {}) => request('/auth/me', { ...options }),

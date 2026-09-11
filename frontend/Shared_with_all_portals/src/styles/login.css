@@ -34,6 +34,14 @@
 .login-secondary-actions { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 17px; }
 .login-secondary-actions button { padding: 6px 0; border: 0; background: transparent; }
 .login-secondary-actions button:disabled { color: #839088; }
+.login-password-field { position: relative; min-width: 0; }
+.login-password-field .field input { padding-right: 42px; }
+.login-password-toggle { position: absolute; top: 26px; right: 8px; display: grid; place-items: center; padding: 6px; border: 0; background: transparent; color: inherit; }
+.login-recovery-actions { margin: 0 0 17px; }
+.login-card .login-error { overflow-wrap: anywhere; }
+.login-card .login-secondary-actions { flex-wrap: wrap; }
+.login-card .login-fields > * { min-width: 0; }
+.login-card .otp-input { width: 100%; min-width: 0; box-sizing: border-box; }
 
 @media (max-width: 620px) {
   .login-brand-logo { width: 72px; height: 72px; margin-bottom: 10px; }

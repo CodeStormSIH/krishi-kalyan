@@ -17,4 +17,4 @@ pydantic-settings
 python-dotenv
 psycopg2-binary
 qrcode
-pillow
+pillowrequests

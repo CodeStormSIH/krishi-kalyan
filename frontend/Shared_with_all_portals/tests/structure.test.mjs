@@ -60,14 +60,15 @@ test('shared state keys and legacy route composition are retained', () => {
   assert.ok(app.includes('session.role !== role'));
 });
 
-test('portal entry requires contact details and OTP before creating a session', () => {
+test('portal entry uses role-specific authentication without a demo bypass', () => {
   const login = read('Shared_with_all_portals/src/pages/Login.jsx');
-  assert.ok(login.includes('Email address'));
-  assert.ok(login.includes('Mobile number'));
-  assert.ok(login.includes('Enter 6-digit OTP'));
-  assert.ok(login.includes("if (otp !== DEMO_OTP)"));
-  assert.ok(login.indexOf('login({') > login.indexOf("if (otp !== DEMO_OTP)"));
-  assert.ok(login.includes('Frontend demo only'));
+  assert.ok(login.includes('Aadhaar Number'));
+  assert.ok(login.includes('Center ID'));
+  assert.ok(login.includes('Enter verification code'));
+  assert.ok(login.includes('Forgot username?'));
+  assert.ok(login.includes('Forgot password?'));
+  assert.ok(!login.includes('DEMO_OTP'));
+  assert.ok(!login.includes('Frontend demo only'));
   assert.ok(login.includes("location.state?.role || initialRole"));
   assert.ok(read('Shared_with_all_portals/src/mountPortal.jsx').includes('roleFromPath || initialRole'));
   const store = read('Shared_with_all_portals/src/services/store.jsx');

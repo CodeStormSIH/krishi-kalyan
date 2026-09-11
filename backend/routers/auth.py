@@ -212,3 +212,7 @@ def verify_otp(request: schemas.VerifyOtpRequest, db: Session = Depends(get_db))
 def get_current_user():
     # Simplified mock for the hackathon /me endpoint if no token is passed
     return {"status": "success", "message": "Currently this requires JWT logic, but the route exists"}
+
+# Authentication for the existing portal-specific login forms.
+from routers.portal_auth import router as portal_auth_router
+router.include_router(portal_auth_router)

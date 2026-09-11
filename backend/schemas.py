@@ -248,6 +248,23 @@ class FarmerQueueEstimateResponse(BaseModel):
     status: str
     status_message: str
 
+class CenterCreateRequest(BaseModel):
+    center_name: str
+    location: str
+    capacity_quintals: float
+    operator_phone: str
+    operator_name: str
+    password: str
+
+class CenterResponse(BaseModel):
+    id: str
+    name: str
+    location: str
+    capacity_quintals: float
+    operator_phone: Optional[str] = None
+    operator_name: Optional[str] = None
+    active_vehicles: int
+
 # ==========================================
 # 4. TRACTOR POOLING SCHEMAS
 # ==========================================

@@ -69,16 +69,122 @@ function CreateAccountForm({ onBack, auth }) {
   </form>;
 }
 
+function AdminAadhaarAuth({ onSuccess, onBack }) {
+  const [step, setStep] = useState(1);
+  const [username, setUsername] = useState('admin');
+  const [aadhaarId, setAadhaarId] = useState('');
+  const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [demoMessage, setDemoMessage] = useState('');
+
+  const requestOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/auth/admin/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, aadhaar_id: aadhaarId.replace(/\s+/g, '') })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed to request OTP');
+      setDemoMessage(`Demo OTP: ${data.demo_otp} (UIDAI Sandbox Simulated)`);
+      setStep(2);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/auth/admin/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, aadhaar_id: aadhaarId.replace(/\s+/g, ''), otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Invalid OTP');
+      onSuccess(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAadhaarChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 12) val = val.substring(0, 12);
+    let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+    setAadhaarId(formatted);
+  };
+
+  return (
+    <div>
+      {step === 1 ? (
+        <form onSubmit={requestOtp} noValidate aria-busy={loading}>
+          <div className="login-fields">
+            <LoginField label="Admin Username" name="username" type="text" value={username} onChange={e => setUsername(e.target.value)} required disabled={loading} />
+            <LoginField label="Aadhaar ID" name="aadhaarId" icon={ShieldCheck} type="text" inputMode="numeric" autoComplete="off" placeholder="XXXX XXXX XXXX" value={aadhaarId} onChange={handleAadhaarChange} required disabled={loading} />
+          </div>
+          {error && <p className="login-error" role="alert">{error}</p>}
+          <Button type="submit" disabled={loading || aadhaarId.replace(/\s+/g, '').length !== 12}>{loading ? 'Please wait…' : 'Generate OTP'}</Button>
+        </form>
+      ) : (
+        <form onSubmit={verifyOtp} noValidate aria-busy={loading}>
+          {demoMessage && (
+            <div style={{ background: '#dbeafe', color: '#1e40af', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '0.875rem' }}>
+              <strong>{demoMessage}</strong>
+            </div>
+          )}
+          <div className="otp-summary">
+            <span>Verifying Aadhaar</span><strong>XXXX-XXXX-{aadhaarId.slice(-4)}</strong>
+          </div>
+          <div className="login-fields">
+            <Field label="Enter OTP" name="otp" type="text" inputMode="numeric" autoComplete="one-time-code" className="otp-input" maxLength={6} placeholder="• • • • • •" required autoFocus disabled={loading} value={otp} onChange={e => setOtp(e.target.value)} />
+          </div>
+          {error && <p className="login-error" role="alert">{error}</p>}
+          <Button type="submit" disabled={loading || otp.length !== 6}>{loading ? 'Please wait…' : 'Verify OTP & Enter Portal'}</Button>
+          <div className="login-secondary-actions">
+            <button type="button" className="linkish" onClick={() => setStep(1)}>Back</button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function Login({ initialRole = 'farmer' }) {
   const [view, setView] = useState('login');
-  const { login } = useStore();
+  const [showDirectReset, setShowDirectReset] = useState(false);
+  const [resetPhone, setResetPhone] = useState('');
+  const [resetPasswordStr, setResetPasswordStr] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const { login, toast } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useLoginFlow(location.state?.role || initialRole, account => {
     localStorage.setItem('krishi_user', JSON.stringify(account));
     localStorage.setItem('krishi_token', account.access_token);
     login({ role: account.role, name: account.full_name || account.username, username: account.username });
-    navigate(`/${account.role}/dashboard`, { replace: true });
+    
+    if (account.role === 'farmer') {
+      navigate('/farmer/dashboard', { replace: true });
+    } else if (account.role === 'operator' || account.role === 'mandi') {
+      navigate('/procurement-center', { replace: true });
+    } else if (account.role === 'admin') {
+      navigate('/admin/dashboard', { replace: true });
+    } else {
+      navigate(`/${account.role}/dashboard`, { replace: true });
+    }
   });
   const { state, errors, loading, field, submit, chooseRole, recover } = auth;
   const { role, step, flow } = state;
@@ -120,7 +226,17 @@ export default function Login({ initialRole = 'farmer' }) {
             </button>)}
           </div>
         </fieldset>
-        {step === 'otp-verification' ? <OtpForm auth={auth} /> : view === 'create-account' ? <CreateAccountForm auth={auth} onBack={() => { chooseRole('farmer'); setView('login'); }} /> : <form onSubmit={submit} noValidate aria-busy={loading} key={`${role}-${flow}-${step}`}>
+        {role === 'admin' ? (
+          <AdminAadhaarAuth 
+            onSuccess={(account) => {
+              localStorage.setItem('krishi_user', JSON.stringify(account.user));
+              localStorage.setItem('krishi_token', account.access_token);
+              login({ role: account.role, name: account.user.username, username: account.user.username });
+              navigate('/admin/dashboard', { replace: true });
+            }}
+            onBack={() => { chooseRole('farmer'); setView('login'); }}
+          />
+        ) : step === 'otp-verification' ? <OtpForm auth={auth} /> : view === 'create-account' ? <CreateAccountForm auth={auth} onBack={() => { chooseRole('farmer'); setView('login'); }} /> : <form onSubmit={submit} noValidate aria-busy={loading} key={`${role}-${flow}-${step}`}>
           <div className="login-fields">
             {step === 'credentials' && <LoginField label={role === 'operator' ? 'Center ID' : 'Username'} name="identifier" type="text" autoComplete="username" required disabled={loading} error={errors.identifier} {...field('identifier')} />}
             {normalFarmer || step === 'reset-password' ? <>
@@ -130,13 +246,55 @@ export default function Login({ initialRole = 'farmer' }) {
           </div>
           {normalFarmer && <div className="login-secondary-actions login-recovery-actions">
             <button type="button" className="linkish" onClick={() => recover('forgot-username')}>Forgot username?</button>
-            <button type="button" className="linkish" onClick={() => recover('forgot-password')}>Forgot password?</button>
+            <button type="button" className="linkish" onClick={() => setShowDirectReset(true)}>Forgot password? (Password bhool gaye?)</button>
           </div>}
           {errors.form && <p className="login-error" role="alert">{errors.form}</p>}
           <Button type="submit" disabled={loading}>{loading ? 'Please wait…' : step === 'reset-password' ? 'Reset Password' : normalFarmer ? 'Login' : flow === 'login' ? 'Send OTP' : 'Continue'}</Button>
         </form>}
         {view === 'login' && normalFarmer && <div className="login-secondary-actions"><button type="button" className="linkish" onClick={() => { chooseRole('farmer'); setView('create-account'); }}>Create new account</button></div>}
         {flow !== 'login' && <div className="login-secondary-actions"><button type="button" className="linkish" onClick={() => { chooseRole('farmer'); setView('login'); }}>Back to login</button></div>}
+        {showDirectReset && (
+          <div className="login-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <Card className="login-card" style={{ zIndex: 1001, background: 'var(--surface)', margin: '1rem', width: '100%', maxWidth: '400px' }}>
+              <div className="login-card__heading">
+                <div className="login-card__icon"><ShieldCheck size={22} aria-hidden="true" /></div>
+                <div><h2>Reset Password</h2><p className="muted">Enter your phone number and a new password.</p></div>
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setResetLoading(true);
+                setResetError('');
+                try {
+                  const res = await fetch('/api/v1/auth/portal/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone_number: resetPhone, new_password: resetPasswordStr })
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.detail || 'Reset failed');
+                  toast('Password successfully updated. Please login.');
+                  setShowDirectReset(false);
+                  setResetPhone('');
+                  setResetPasswordStr('');
+                } catch (err) {
+                  setResetError(err.message);
+                } finally {
+                  setResetLoading(false);
+                }
+              }}>
+                <div className="login-fields">
+                  <LoginField label="Phone Number" name="resetPhone" value={resetPhone} onChange={e => setResetPhone(e.target.value)} icon={Phone} type="tel" inputMode="numeric" required />
+                  <PasswordField label="New Password" name="resetPassword" value={resetPasswordStr} onChange={e => setResetPasswordStr(e.target.value)} minLength={8} required />
+                </div>
+                {resetError && <p className="login-error" role="alert">{resetError}</p>}
+                <Button type="submit" disabled={resetLoading}>{resetLoading ? 'Please wait...' : 'Update Password'}</Button>
+                <div className="login-secondary-actions">
+                  <button type="button" className="linkish" onClick={() => setShowDirectReset(false)}>Cancel</button>
+                </div>
+              </form>
+            </Card>
+          </div>
+        )}
       </Card>
     </div>
   );

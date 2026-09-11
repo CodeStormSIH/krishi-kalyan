@@ -58,6 +58,7 @@ export function useLoginFlow(initialRole, onAuthenticated, service = loginAuth) 
       const commit = await action();
       if (version === generation.current) commit();
     } catch (error) {
+      console.error("CRASH INSIDE POST-LOGIN HANDLER:", error);
       if (version === generation.current) setErrors({ form: authErrorMessage(error) });
     } finally {
       if (version === generation.current) { busy.current = false; setLoading(false); }

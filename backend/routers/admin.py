@@ -105,3 +105,86 @@ def get_active_vehicles(db: Session = Depends(get_db)):
         ))
         
     return result
+
+@router.post("/centers/create")
+def create_mandi_center(request: schemas.CenterCreateRequest, db: Session = Depends(get_db)):
+    from routers.portal_auth import PortalAccount, password_hash
+    from fastapi import HTTPException
+    
+    # 1. Check if operator phone already registered
+    existing_user = db.query(models.User).filter(models.User.phone_number == request.operator_phone).first()
+    existing_account = db.query(PortalAccount).filter(PortalAccount.phone == request.operator_phone).first()
+    
+    if existing_user or existing_account:
+        raise HTTPException(status_code=400, detail="Operator phone already registered")
+        
+    # 2. Generate unique center_id
+    import time
+    center_id = f"MANDI_{int(time.time())}"
+    
+    # 3. Create and save MandiCenter
+    # We use location and capacity_quintals which are mapped to district and max_capacity via synonym
+    new_mandi = models.Mandi(
+        id=center_id,
+        name=request.center_name,
+        location=request.location,
+        capacity_quintals=int(request.capacity_quintals)
+    )
+    db.add(new_mandi)
+    
+    # 4. Create Operator User and PortalAccount
+    operator_user = models.User(
+        phone_number=request.operator_phone,
+        full_name=request.operator_name,
+        role="operator",
+        center_id=center_id
+    )
+    db.add(operator_user)
+    db.flush() # to get operator_user.id
+    
+    new_mandi.operator_user_id = operator_user.id
+    
+    operator_account = PortalAccount(
+        user_id=operator_user.id,
+        username=request.operator_phone,
+        role="operator",
+        phone=request.operator_phone,
+        password_hash=password_hash(request.password),
+        aadhaar_digest="no_aadhaar", # since admin provisions, we bypass aadhaar
+        active=True
+    )
+    db.add(operator_account)
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": "Center & Operator created successfully",
+        "center_id": center_id,
+        "operator_phone": request.operator_phone
+    }
+
+@router.get("/centers", response_model=List[schemas.CenterResponse])
+def get_mandi_centers(db: Session = Depends(get_db)):
+    mandis = db.query(models.Mandi).all()
+    results = []
+    
+    for mandi in mandis:
+        operator_phone = None
+        operator_name = None
+        if mandi.operator_user_id:
+            operator = db.query(models.User).filter(models.User.id == mandi.operator_user_id).first()
+            if operator:
+                operator_phone = operator.phone_number
+                operator_name = operator.full_name
+                
+        results.append(schemas.CenterResponse(
+            id=mandi.id,
+            name=mandi.name,
+            location=mandi.location,
+            capacity_quintals=mandi.capacity_quintals,
+            operator_phone=operator_phone,
+            operator_name=operator_name,
+            active_vehicles=mandi.current_active_vehicles
+        ))
+        
+    return results

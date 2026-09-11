@@ -58,8 +58,10 @@ export function authErrorMessage(error) {
     PASSWORD_POLICY: 'Password does not meet the required password policy.',
     ACCOUNT_UNAVAILABLE: 'Unable to create an account with these details. Try logging in or recovering your account.',
   };
-  return error instanceof AuthError && Object.hasOwn(messages, error.code)
-    ? messages[error.code] : 'Unable to complete authentication. Please try again.';
+  if (error instanceof AuthError && Object.hasOwn(messages, error.code)) {
+    return messages[error.code];
+  }
+  return error?.message || 'Unable to complete authentication. Please try again.';
 }
 
 export function autofilledOtp(response) {
@@ -78,13 +80,24 @@ export function safeChallenge(response) {
 }
 
 export function safeAccount(response, role) {
-  if (!response || response.role?.toLowerCase() !== role ||
-      typeof response.access_token !== 'string' || !response.access_token.trim() ||
-      typeof response.user_id !== 'string' || !response.user_id ||
-      typeof response.username !== 'string' || !response.username) {
-    throw new AuthError('INVALID_RESPONSE');
+  const token = response?.access_token || response?.token || response?.data?.access_token;
+  const user = response?.user || response?.data?.user || {};
+  const actualRole = response?.role || response?.data?.role || user?.role || role;
+  
+  const userId = response?.user_id || user?.id || user?.user_id || 'unknown';
+  const username = response?.username || user?.username || user?.phone_number || '';
+  const fullName = response?.full_name || user?.full_name || username;
+
+  if (!token || typeof token !== 'string' || !token.trim()) {
+    throw new Error('Token missing from server response');
   }
+
   // Explicit allowlist: never persist identity/OTP/reset response payloads.
-  return { access_token: response.access_token, role, user_id: response.user_id,
-    username: response.username, full_name: typeof response.full_name === 'string' ? response.full_name : '' };
+  return { 
+    access_token: token, 
+    role: (actualRole || role).toLowerCase(), 
+    user_id: String(userId),
+    username: String(username), 
+    full_name: typeof fullName === 'string' ? fullName : String(username) 
+  };
 }

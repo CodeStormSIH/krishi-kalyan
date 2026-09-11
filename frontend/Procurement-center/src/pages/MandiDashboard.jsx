@@ -10,7 +10,32 @@ export default function MandiDashboard() {
 
   useEffect(() => {
     fetchBookings();
+    
+    // ML Polling
+    fetchMlData();
+    const interval = setInterval(fetchMlData, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const [mlData, setMlData] = useState(null);
+
+  const fetchMlData = async () => {
+    try {
+      const centerId = JSON.parse(localStorage.getItem('krishi_user') || '{}')?.center_id || 'MANDI-1';
+      const [queueRes, arrivalsRes] = await Promise.all([
+        fetch(`http://localhost:8000/api/v1/analytics/mandi/${centerId}/queue-intelligence`),
+        fetch(`http://localhost:8000/api/v1/analytics/mandi/${centerId}/arrivals-forecast`)
+      ]);
+      
+      if (queueRes.ok && arrivalsRes.ok) {
+        const queueData = await queueRes.json();
+        const arrivalsData = await arrivalsRes.json();
+        setMlData({ ...queueData, arrivals: arrivalsData });
+      }
+    } catch (err) {
+      console.error("Failed to fetch ML data", err);
+    }
+  };
 
   const fetchBookings = async () => {
     try {
@@ -45,6 +70,45 @@ export default function MandiDashboard() {
   return (
     <div className="page">
       <h2>Mandi Operational Dashboard</h2>
+      
+      {mlData && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '1.5rem'}}>
+          {/* Card 1: Congestion Gauge */}
+          <Card style={{borderColor: mlData.metrics.status_color, borderTopWidth: '4px'}}>
+            <p style={{fontSize: '0.875rem', color: '#4b5563', fontWeight: '600'}}>Congestion Gauge</p>
+            <h3 style={{fontSize: '2rem', margin: '5px 0', color: mlData.metrics.status_color}}>{mlData.metrics.congestion_percentage}%</h3>
+            <Badge style={{backgroundColor: mlData.metrics.status_color, color: 'white'}}>{mlData.metrics.congestion_level}</Badge>
+          </Card>
+
+          {/* Card 2: Predicted Wait Time */}
+          <Card>
+            <p style={{fontSize: '0.875rem', color: '#4b5563', fontWeight: '600'}}>Predicted Wait Time</p>
+            <h3 style={{fontSize: '2rem', margin: '5px 0'}}>~{mlData.metrics.estimated_wait_minutes} Mins</h3>
+            <p style={{fontSize: '0.75rem', color: '#6b7280'}}>Current average processing delay at gate & weighbridge</p>
+          </Card>
+
+          {/* Card 3: 4-Hour Forward Queue Forecast */}
+          <Card>
+            <p style={{fontSize: '0.875rem', color: '#4b5563', fontWeight: '600'}}>4-Hour Queue Forecast</p>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '10px'}}>
+              {mlData.forecast_4h.map((f, i) => (
+                <div key={i} style={{textAlign: 'center', fontSize: '0.8rem'}}>
+                  <div style={{fontWeight: 'bold'}}>{f.time_slot}</div>
+                  <div style={{color: '#ef4444', fontWeight: 'bold'}}>{f.projected_queue_size} Q</div>
+                  <div style={{color: '#6b7280'}}>{f.expected_wait_minutes}m</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Card 4: Net Expected Physical Inflow */}
+          <Card>
+            <p style={{fontSize: '0.875rem', color: '#4b5563', fontWeight: '600'}}>Net Expected Inflow</p>
+            <h3 style={{fontSize: '2rem', margin: '5px 0'}}>{mlData.arrivals.data?.net_expected_arrivals || 0} Vehicles</h3>
+            <Badge style={{backgroundColor: '#e5e7eb', color: '#374151'}}>-{mlData.arrivals.data?.predicted_no_shows || 0} predicted no-shows deducted</Badge>
+          </Card>
+        </div>
+      )}
       
       <Card className="mt">
         <SectionTitle title="Procurement Queue" />

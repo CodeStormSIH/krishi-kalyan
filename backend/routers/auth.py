@@ -213,6 +213,56 @@ def get_current_user():
     # Simplified mock for the hackathon /me endpoint if no token is passed
     return {"status": "success", "message": "Currently this requires JWT logic, but the route exists"}
 
+from pydantic import BaseModel
+import re
+
+@router.post("/admin/request-otp")
+async def request_admin_otp(payload: dict, db: Session = Depends(get_db)):
+    username = payload.get("username", "admin").strip()
+    aadhaar_val = str(payload.get("aadhaar_id", "")).replace(" ", "").strip()
+
+    # Validate 12-digit format
+    if len(aadhaar_val) != 12 or not aadhaar_val.isdigit():
+        raise HTTPException(status_code=400, detail="Aadhaar ID must be a valid 12-digit number")
+
+    # Verify or create the admin account
+    user = db.query(models.User).filter(
+        (models.User.phone_number == username) | (models.User.role == "admin")
+    ).first()
+
+    if not user:
+        user = models.User(
+            phone_number=username or "admin",
+            role="admin",
+            password="AdminPassword@123"
+        )
+        db.add(user)
+        db.commit()
+
+    return {
+        "status": "success",
+        "message": "OTP sent successfully",
+        "demo_otp": "123456"
+    }
+
+@router.post("/admin/verify-otp")
+async def verify_admin_otp(payload: dict, db: Session = Depends(get_db)):
+    username = payload.get("username", "admin").strip()
+    otp = payload.get("otp", "").strip()
+    
+    if otp != "123456":
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+        
+    return {
+        "access_token": "admin-demo-token",
+        "token_type": "bearer",
+        "role": "admin",
+        "user": {
+            "username": username or "admin",
+            "role": "admin"
+        }
+    }
+
 # Authentication for the existing portal-specific login forms.
 from routers.portal_auth import router as portal_auth_router
 router.include_router(portal_auth_router)

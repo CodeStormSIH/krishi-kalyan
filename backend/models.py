@@ -1,6 +1,7 @@
 # backend/models.py
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, Text, JSON
+from sqlalchemy.orm import synonym
 from database import Base
 import uuid
 
@@ -13,6 +14,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     role = Column(String, default="FARMER")
     mandi_id = Column(String, nullable=True)
+    center_id = synonym('mandi_id')
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class OtpSession(Base):
@@ -30,8 +32,11 @@ class Mandi(Base):
     id = Column(String, primary_key=True, index=True)
     name = Column(String, nullable=False)
     district = Column(String, nullable=False)
+    location = synonym('district')
     max_capacity = Column(Integer, default=50)
+    capacity_quintals = synonym('max_capacity')
     current_active_vehicles = Column(Integer, default=0)
+    operator_user_id = Column(String, nullable=True)
 
 class Booking(Base):
     __tablename__ = "bookings"
